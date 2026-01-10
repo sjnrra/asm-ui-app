@@ -361,6 +361,7 @@ function App() {
                 statement={selectedStatement} 
                 context={parseResult.context}
                 fileManager={fileManager}
+                statements={parseResult.statements}
               />
               <LabelPanel symbols={parseResult.symbols} />
               <FilesPanel files={fileManager.getAllFiles()} />

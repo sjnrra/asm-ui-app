@@ -166,6 +166,30 @@ export const OPCODE_DATABASE: Map<string, OpcodeInfo> = new Map([
   ["TITLE", { mnemonic: "TITLE", format: "S", description: "タイトル定義命令。アセンブリリストの各ページに表示するタイトルを定義します。プログラム名や説明文を指定します。", operands: { count: 1, types: ["string"] } }],
   ["YREGS", { mnemonic: "YREGS", format: "S", description: "レジスタ等価定義マクロ。汎用レジスタ（R0～R15）と浮動小数点レジスタ（F0～F15）のEQU定義を生成します。レジスタをシンボル名（R1, R2など）で参照できるようにします。", operands: { count: 0, types: [] } }],
   ["RETURN", { mnemonic: "RETURN", format: "S", description: "戻り命令（マクロ）。サブルーチンから呼び出し元に戻ります。保存したレジスタを復元し、呼び出し元のアドレス（R14）に分岐します。", operands: { count: 0, types: [] } }],
+  
+  // 算術演算・論理演算命令（追加）
+  ["SLR", { mnemonic: "SLR", format: "RR", description: "論理減算命令（レジスタ）。第1オペランドのレジスタの値から第2オペランドのレジスタの値を符号なし整数として減算し、結果を第1オペランドのレジスタに格納します。SRと異なり、オーバーフロー条件は設定されません。", operands: { count: 2, types: ["register", "register"] } }],
+  
+  // データ変換命令
+  ["CVD", { mnemonic: "CVD", format: "RX", description: "2進数から10進数への変換命令。第1オペランドのレジスタに格納されている32ビットの2進数をパック10進数（Packed Decimal）形式に変換し、メモリ（8バイト）に格納します。第2オペランドは変換結果を格納する8バイト領域のアドレスです。数値の出力処理で使用されます。", operands: { count: 2, types: ["register", "base-displacement"] } }],
+  ["UNPK", { mnemonic: "UNPK", format: "SS", description: "パック10進数からゾーン10進数へのアンパック命令。第1オペランドのアドレスから第2オペランドのアドレスへ、パック10進数をゾーン10進数（文字形式）に変換してコピーします。パック10進数の各桁を個別のバイト（ゾーン付き）に展開します。数値の表示用変換に使用されます。", operands: { count: 2, types: ["base-displacement", "base-displacement"] } }],
+  
+  // 論理演算命令（追加）
+  ["OI", { mnemonic: "OI", format: "SI", description: "即値論理OR演算命令（メモリ）。メモリの1バイトと即値（8ビット符号なし整数）のビットごとの論理OR演算を行い、結果をメモリに書き戻します。フラグの設定やビットのONに使用されます。例: OI FLAG,X'80' はFLAGの最上位ビットを1に設定します。", operands: { count: 2, types: ["base-displacement", "immediate"] } }],
+  
+  // 分岐命令（追加）
+  ["BAS", { mnemonic: "BAS", format: "RX", description: "分岐してアドレス保存命令。指定されたアドレスに分岐し、現在のアドレス+4を第1オペランドのレジスタに保存します。BALと同様ですが、形式が異なります。サブルーチン呼び出しや動的な分岐先の設定に使用されます。", operands: { count: 2, types: ["register", "base-displacement"] } }],
+  
+  // VSAM関連マクロ・マクロ命令
+  ["GET", { mnemonic: "GET", format: "S", description: "VSAM/QSAM レコード読み込み命令（マクロ）。RPL（Request Parameter List）またはDCBを指定して、データセットから次のレコードを読み込みます。VSAMのキー順アクセスや順次アクセス、QSAMの順次読み込みで使用されます。例: GET RPL=UT1RPL はVSAMデータセットから次のレコードを読み込みます。", operands: { count: 1, types: ["string"] } }],
+  ["PUT", { mnemonic: "PUT", format: "S", description: "VSAM/QSAM レコード書き込み命令（マクロ）。DCBを指定して、データセットにレコードを書き込みます。QSAMの順次書き込みで使用されます。例: PUT OUTLIST,(10) はOUTLISTデータセットにGR10が指すレコードを書き込みます。", operands: { count: 2, types: ["memory", "memory"] } }],
+  ["ACB", { mnemonic: "ACB", format: "S", description: "VSAM Access Control Block定義マクロ。VSAMデータセットへのアクセスを制御するACB構造を定義します。AM（アクセス方式）、DDNAME、MACRF（マクロ形式）などを指定します。例: ACB AM=VSAM,DDNAME=SYSUT1,MACRF=IN は入力専用のVSAM ACBを定義します。", operands: { count: 1, types: ["string"] } }],
+  ["RPL", { mnemonic: "RPL", format: "S", description: "VSAM Request Parameter List定義マクロ。VSAM操作の詳細を指定するRPL構造を定義します。ACB、AREA（バッファアドレス）、AREALEN（バッファ長）、OPTCD（オプションコード）などを指定します。GET、PUTなどのVSAM操作で使用されます。", operands: { count: 1, types: ["string"] } }],
+  ["IFGACB", { mnemonic: "IFGACB", format: "S", description: "VSAM ACB DSECT定義マクロ。VSAM Access Control Blockの構造（DSECT）を定義します。ACBの各フィールドにアクセスするために使用します。USING命令と組み合わせて、ACBフィールド（ACBERFLGなど）を参照できます。", operands: { count: 1, types: ["string"] } }],
+  ["IFGRPL", { mnemonic: "IFGRPL", format: "S", description: "VSAM RPL DSECT定義マクロ。VSAM Request Parameter Listの構造（DSECT）を定義します。RPLの各フィールドにアクセスするために使用します。USING命令と組み合わせて、RPLフィールド（RPLERRCDなど）を参照できます。", operands: { count: 1, types: ["string"] } }],
+  
+  // システムサービス・マクロ命令
+  ["WTO", { mnemonic: "WTO", format: "S", description: "Write To Operator命令（マクロ）。オペレーターコンソールにメッセージを出力します。プログラムの実行状態やエラーメッセージを通知するために使用されます。MCSFLAGでメッセージの属性（HRDCPY（ハードコピー）など）を指定できます。例: WTO 'ERROR MESSAGE',MF=L はエラーメッセージを定義します。", operands: { count: 1, types: ["string"] } }],
 ]);
 
 /**

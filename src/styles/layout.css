@@ -396,12 +396,58 @@
   border-color: rgba(78, 201, 176, 0.6);
 }
 
+/* 内部シンボル参照セクション */
+.internal-symbols-section {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 外部シンボル参照セクション */
 .external-symbols-section {
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* シンボルリスト（内部・外部共通） */
+.symbols-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* シンボルアイテム（内部・外部共通） */
+.symbol-item {
+  padding: 10px;
+  border-radius: 4px;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+/* 内部シンボルアイテム */
+.internal-symbols-section .symbol-item {
+  background: rgba(78, 201, 176, 0.15);
+  border: 1px solid rgba(78, 201, 176, 0.4);
+}
+
+.internal-symbols-section .symbol-item:hover {
+  background: rgba(78, 201, 176, 0.25);
+  border-color: rgba(78, 201, 176, 0.6);
+}
+
+/* 外部シンボルアイテム */
+.external-symbols-section .symbol-item {
+  background: rgba(86, 156, 214, 0.15);
+  border: 1px solid rgba(86, 156, 214, 0.4);
+}
+
+.external-symbols-section .symbol-item:hover {
+  background: rgba(86, 156, 214, 0.25);
+  border-color: rgba(86, 156, 214, 0.6);
+}
+
+/* 後方互換性のため、旧クラス名も保持 */
 .external-symbols-list {
   display: flex;
   flex-direction: column;
@@ -422,12 +468,33 @@
   border-color: rgba(86, 156, 214, 0.6);
 }
 
+/* シンボルヘッダー（内部・外部共通） */
+.symbol-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
 .external-symbol-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   margin-bottom: 6px;
+}
+
+/* シンボル名（内部・外部共通） */
+.symbol-name {
+  color: #569cd6;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.internal-symbols-section .symbol-name {
+  color: #4ec9b0;
 }
 
 .external-symbol-name {
@@ -437,6 +504,14 @@
   font-weight: 600;
 }
 
+/* シンボルタイプ（内部・外部共通） */
+.symbol-type {
+  color: #9cdcfe;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 11px;
+  font-style: italic;
+}
+
 .external-symbol-type {
   color: #9cdcfe;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
@@ -444,11 +519,29 @@
   font-style: italic;
 }
 
+/* シンボルファイル（内部・外部共通） */
+.symbol-file {
+  color: #4ec9b0;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 11px;
+  cursor: help;
+}
+
 .external-symbol-file {
   color: #4ec9b0;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 11px;
   cursor: help;
+}
+
+/* シンボル定義（内部・外部共通） */
+.symbol-definition {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .external-symbol-definition {
@@ -460,6 +553,7 @@
   border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+.symbol-definition code,
 .external-symbol-definition code {
   color: #cccccc;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
@@ -471,6 +565,13 @@
   word-wrap: break-word;
   word-break: break-word;
   overflow-wrap: break-word;
+}
+
+/* シンボル行番号（内部・外部共通） */
+.symbol-line {
+  color: #858585;
+  font-size: 10px;
+  white-space: nowrap;
 }
 
 .external-symbol-line {

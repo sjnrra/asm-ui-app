@@ -7,61 +7,154 @@ interface OperandPanelProps {
   statement?: AsmStatement;
   context?: ParseContext;
   fileManager?: FileManager;
+  statements?: AsmStatement[]; // すべてのステートメント（定義行を取得するため）
 }
 
-interface ExternalSymbolReference {
+interface SymbolReference {
   symbolName: string;
   fileName: string;
   definition: string;
   lineNumber: number;
   type: "equ" | "dc" | "ds" | "label" | "external";
+  isInternal: boolean; // 同じファイル内で定義されているか
 }
 
 /**
- * 外部ファイルからシンボル定義を検索
+ * シンボル定義を検索（内部→外部の順）
  */
-function findSymbolInExternalFiles(
+function findSymbolDefinition(
   symbolName: string,
-  fileManager?: FileManager
-): ExternalSymbolReference | null {
-  if (!fileManager) {
+  currentSourceFile: string | undefined,
+  context?: ParseContext,
+  fileManager?: FileManager,
+  statements?: AsmStatement[]
+): SymbolReference | null {
+  if (!context) {
     return null;
   }
 
   const symbolNameUpper = symbolName.toUpperCase();
-  const allFiles = fileManager.getAllFiles();
+  const symbolDefiningOpcodes = ['EQU', 'DC', 'DS', 'CSECT', 'DSECT', 'ENTRY', 'EXTRN', 'DCB', 'ACB', 'RPL'];
 
-  const symbolDefiningOpcodes = ['EQU', 'DC', 'DS', 'CSECT', 'DSECT', 'ENTRY', 'EXTRN'];
+  // ステップ1: アセンブリソース内（context.symbols）で検索
+  const symDef = context.symbols?.get(symbolNameUpper);
+  if (symDef) {
+    // 同じファイル内で定義されているかチェック
+    const isInternal = symDef.sourceFile === currentSourceFile || 
+                      (!symDef.sourceFile && !currentSourceFile) ||
+                      (symDef.sourceFile === undefined && currentSourceFile === undefined);
+    
+    if (isInternal) {
+      // 内部シンボル（同じファイル内で定義）
+      let symbolType: "equ" | "dc" | "ds" | "label" | "external" = "external";
+      if (symDef.type === "equ") symbolType = 'equ';
+      else if (symDef.type === "constant") symbolType = 'dc';
+      else if (symDef.type === "variable") symbolType = 'ds';
+      else if (symDef.type === "label") symbolType = 'label';
 
-  for (const file of allFiles) {
-    const lines = file.content.split('\n');
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      try {
-        const stmt = parseLine(line, i + 1);
-        if (stmt.label && stmt.opcode) {
-          const opcodeUpper = stmt.opcode.toUpperCase();
-          if (symbolDefiningOpcodes.includes(opcodeUpper) &&
-              stmt.label.toUpperCase() === symbolNameUpper) {
-            let symbolType: "equ" | "dc" | "ds" | "label" | "external" = "external";
-            if (opcodeUpper === 'EQU') symbolType = 'equ';
-            else if (opcodeUpper === 'DC') symbolType = 'dc';
-            else if (opcodeUpper === 'DS') symbolType = 'ds';
-            else if (opcodeUpper === 'CSECT' || opcodeUpper === 'DSECT' || opcodeUpper === 'ENTRY') symbolType = 'label';
-
-            return {
-              symbolName: stmt.label,
-              fileName: file.name,
-              definition: line.trim(),
-              lineNumber: i + 1,
-              type: symbolType,
-            };
+      // 元の行の内容を取得
+      let definitionLine = `${symDef.name} ${symDef.type.toUpperCase()}${symDef.dataType ? ` ${symDef.dataType}` : ''}`;
+      const sourceFileName = symDef.sourceFile || currentSourceFile;
+      
+      // 方法1: statements から直接取得（優先）
+      if (statements && symDef.definedAt > 0) {
+        const definingStatement = statements.find(
+          s => s.lineNumber === symDef.definedAt && 
+               s.label?.toUpperCase() === symbolNameUpper &&
+               (s.sourceFile === sourceFileName || (!s.sourceFile && !sourceFileName))
+        );
+        if (definingStatement && definingStatement.rawText) {
+          definitionLine = definingStatement.rawText.trim();
+        }
+      }
+      
+      // 方法2: fileManager から取得（フォールバック）
+      if (definitionLine === `${symDef.name} ${symDef.type.toUpperCase()}${symDef.dataType ? ` ${symDef.dataType}` : ''}` && 
+          fileManager && sourceFileName && symDef.definedAt > 0) {
+        const file = fileManager.findFile(sourceFileName);
+        if (file) {
+          const lines = file.content.split('\n');
+          const lineIndex = symDef.definedAt - 1; // 行番号は1ベース、配列は0ベース
+          if (lineIndex >= 0 && lineIndex < lines.length) {
+            const originalLine = lines[lineIndex].trim();
+            if (originalLine) {
+              definitionLine = originalLine;
+            }
           }
         }
-      } catch (error) {
+      }
+
+      return {
+        symbolName: symDef.name,
+        fileName: sourceFileName || "（現在のファイル）",
+        definition: definitionLine,
+        lineNumber: symDef.definedAt,
+        type: symbolType,
+        isInternal: true,
+      };
+    }
+  }
+
+  // ステップ2: 外部ファイルから検索
+  if (fileManager) {
+    const allFiles = fileManager.getAllFiles();
+    for (const file of allFiles) {
+      // 現在のファイルはスキップ（既にチェック済み）
+      if (file.name === currentSourceFile) {
         continue;
       }
+
+      const lines = file.content.split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        try {
+          const stmt = parseLine(line, i + 1);
+          if (stmt.label && stmt.opcode) {
+            const opcodeUpper = stmt.opcode.toUpperCase();
+            if (symbolDefiningOpcodes.includes(opcodeUpper) &&
+                stmt.label.toUpperCase() === symbolNameUpper) {
+              let symbolType: "equ" | "dc" | "ds" | "label" | "external" = "external";
+              if (opcodeUpper === 'EQU') symbolType = 'equ';
+              else if (opcodeUpper === 'DC') symbolType = 'dc';
+              else if (opcodeUpper === 'DS') symbolType = 'ds';
+              else if (opcodeUpper === 'DCB') symbolType = 'label';
+              else if (opcodeUpper === 'ACB') symbolType = 'label';
+              else if (opcodeUpper === 'RPL') symbolType = 'label';
+              else if (opcodeUpper === 'CSECT' || opcodeUpper === 'DSECT' || opcodeUpper === 'ENTRY') symbolType = 'label';
+
+              return {
+                symbolName: stmt.label,
+                fileName: file.name,
+                definition: line.trim(),
+                lineNumber: i + 1,
+                type: symbolType,
+                isInternal: false,
+              };
+            }
+          }
+        } catch (error) {
+          continue;
+        }
+      }
     }
+  }
+
+  // ステップ3: context.symbolsにあるが、異なるファイルで定義されている場合
+  if (symDef && symDef.sourceFile && symDef.sourceFile !== currentSourceFile) {
+    let symbolType: "equ" | "dc" | "ds" | "label" | "external" = "external";
+    if (symDef.type === "equ") symbolType = 'equ';
+    else if (symDef.type === "constant") symbolType = 'dc';
+    else if (symDef.type === "variable") symbolType = 'ds';
+    else if (symDef.type === "label") symbolType = 'label';
+
+    return {
+      symbolName: symDef.name,
+      fileName: symDef.sourceFile,
+      definition: `${symDef.name} ${symDef.type.toUpperCase()}${symDef.dataType ? ` ${symDef.dataType}` : ''}`,
+      lineNumber: symDef.definedAt,
+      type: symbolType,
+      isInternal: false,
+    };
   }
 
   return null;
@@ -75,6 +168,16 @@ function extractSymbolsFromOperands(operandsText: string): string[] {
     return [];
   }
 
+  // 予約語・キーワードリスト（シンボルとして扱わない）
+  const reservedWords = new Set([
+    'OUTPUT', 'INPUT', 'UPDATE', 'INOUT', 'EXTEND',
+    'MF', 'MCSFLAG', 'HRDCPY', 'NOHRDCPY',
+    'AM', 'VSAM', 'DDNAME', 'MACRF', 'DSORG', 'RECFM', 'LRECL',
+    'ACB', 'RPL', 'AREA', 'AREALEN', 'OPTCD', 'KEY', 'SEQ', 'LOC',
+    'R', 'L', 'E', 'T', 'N', 'S', 'H', 'F', 'D',
+    'Y', 'YES', 'N', 'NO',
+  ]);
+
   const symbols: string[] = [];
   const parts = operandsText
     .split(/[,()\s+]+/)
@@ -82,22 +185,36 @@ function extractSymbolsFromOperands(operandsText: string): string[] {
     .filter(p => p.length > 0);
 
   for (const part of parts) {
+    const partUpper = part.toUpperCase();
+    
     // レジスタ（R0-R15など）は除外
-    if (!/^R\d+$|^GR\d+$/i.test(part)) {
-      // 数値リテラルは除外
-      if (!/^[0-9A-F]+H?$/i.test(part) && 
-          !/^X'[0-9A-F]+'$/i.test(part) && 
-          !/^=F'/.test(part) &&
-          !/^[=+*\/\-]/.test(part)) {
-        symbols.push(part);
-      }
+    if (/^R\d+$|^GR\d+$/i.test(part)) {
+      continue;
+    }
+    
+    // 予約語は除外
+    if (reservedWords.has(partUpper)) {
+      continue;
+    }
+    
+    // 数値リテラルは除外
+    if (/^[0-9A-F]+H?$/i.test(part) || 
+        /^X'[0-9A-F]+'$/i.test(part) || 
+        /^=F'/.test(part) ||
+        /^[=+*\/\-]/.test(part)) {
+      continue;
+    }
+    
+    // シンボル名として扱う（アルファベットまたはアンダースコアで始まる）
+    if (/^[A-Z_][A-Z0-9_]*$/i.test(part)) {
+      symbols.push(part);
     }
   }
 
   return symbols;
 }
 
-export const OperandPanel = ({ statement, context, fileManager }: OperandPanelProps) => {
+export const OperandPanel = ({ statement, context, fileManager, statements }: OperandPanelProps) => {
   // オペランドがない場合のチェック
   const hasOperands = statement?.instruction?.operands && statement.instruction.operands.length > 0;
   const hasOperandsText = statement?.operandsText && statement.operandsText.trim().length > 0;
@@ -115,8 +232,9 @@ export const OperandPanel = ({ statement, context, fileManager }: OperandPanelPr
 
   const operands = statement.instruction?.operands || [];
 
-  // 外部シンボル参照を検索
-  const externalSymbolRefs: ExternalSymbolReference[] = [];
+  // シンボル参照を検索（内部→外部の順）
+  const internalSymbolRefs: SymbolReference[] = [];
+  const externalSymbolRefs: SymbolReference[] = [];
   const foundSymbolNames = new Set<string>();
   
   if (hasOperandsText && !statement.isMacroCall && statement.operandsText) {
@@ -127,42 +245,22 @@ export const OperandPanel = ({ statement, context, fileManager }: OperandPanelPr
         continue;
       }
       
-      let externalRef: ExternalSymbolReference | null = null;
-      if (fileManager) {
-        externalRef = findSymbolInExternalFiles(symbol, fileManager);
-      }
+      // シンボル定義を検索（内部→外部の順）
+      const symbolRef = findSymbolDefinition(
+        symbol,
+        statement.sourceFile,
+        context,
+        fileManager,
+        statements
+      );
       
-      const symDef = context?.symbols?.get(symbolUpper);
-      let shouldDisplayAsExternal = false;
-      
-      if (externalRef) {
-        if (!statement.sourceFile || statement.sourceFile !== externalRef.fileName) {
-          shouldDisplayAsExternal = true;
-        } else if (symDef && symDef.sourceFile && symDef.sourceFile !== externalRef.fileName) {
-          shouldDisplayAsExternal = true;
+      if (symbolRef) {
+        if (symbolRef.isInternal) {
+          internalSymbolRefs.push(symbolRef);
+        } else {
+          externalSymbolRefs.push(symbolRef);
         }
-      } else if (symDef) {
-        if (symDef.sourceFile && symDef.sourceFile !== statement.sourceFile) {
-          shouldDisplayAsExternal = true;
-        } else if (!symDef.sourceFile && statement.sourceFile) {
-          shouldDisplayAsExternal = true;
-        }
-      }
-      
-      if (shouldDisplayAsExternal) {
-        if (externalRef) {
-          externalSymbolRefs.push(externalRef);
-          foundSymbolNames.add(symbolUpper);
-        } else if (symDef && symDef.sourceFile) {
-          externalSymbolRefs.push({
-            symbolName: symbol,
-            fileName: symDef.sourceFile,
-            definition: `${symDef.name} ${symDef.type.toUpperCase()}`,
-            lineNumber: symDef.definedAt,
-            type: symDef.type === "equ" ? "equ" : symDef.type === "constant" ? "dc" : symDef.type === "variable" ? "ds" : "label",
-          });
-          foundSymbolNames.add(symbolUpper);
-        }
+        foundSymbolNames.add(symbolUpper);
       }
     }
   }
@@ -221,27 +319,53 @@ export const OperandPanel = ({ statement, context, fileManager }: OperandPanelPr
       </div>
       <div className="operand-content">
         {hasOperands && operands.map((op, idx) => renderOperand(op, idx))}
-        {externalSymbolRefs.length > 0 && (
-          <div className="external-symbols-section">
-            <label>外部シンボル参照:</label>
-            <div className="external-symbols-list">
-              {externalSymbolRefs.map((ref, idx) => (
-                <div key={idx} className="external-symbol-item">
-                  <div className="external-symbol-header">
-                    <span className="external-symbol-name">{ref.symbolName}</span>
-                    <span className="external-symbol-type">({ref.type.toUpperCase()})</span>
-                    <span className="external-symbol-file" title={`定義ファイル: ${ref.fileName}`}>
-                      📄 {ref.fileName}
-                    </span>
-                  </div>
-                  <div className="external-symbol-definition">
-                    <code>{ref.definition.substring(0, 72).trimEnd()}</code>
-                    <span className="external-symbol-line">（行 {ref.lineNumber}）</span>
-                  </div>
+        {(internalSymbolRefs.length > 0 || externalSymbolRefs.length > 0) && (
+          <>
+            {internalSymbolRefs.length > 0 && (
+              <div className="internal-symbols-section">
+                <label>内部シンボル参照（同一ファイル内）:</label>
+                <div className="symbols-list">
+                  {internalSymbolRefs.map((ref, idx) => (
+                    <div key={idx} className="symbol-item">
+                      <div className="symbol-header">
+                        <span className="symbol-name">{ref.symbolName}</span>
+                        <span className="symbol-type">({ref.type.toUpperCase()})</span>
+                        <span className="symbol-file" title={`定義ファイル: ${ref.fileName}`}>
+                          📄 {ref.fileName}
+                        </span>
+                      </div>
+                      <div className="symbol-definition">
+                        <code>{ref.definition.trimEnd()}</code>
+                        <span className="symbol-line">（行 {ref.lineNumber}）</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
+            )}
+            {externalSymbolRefs.length > 0 && (
+              <div className="external-symbols-section">
+                <label>外部シンボル参照:</label>
+                <div className="symbols-list">
+                  {externalSymbolRefs.map((ref, idx) => (
+                    <div key={idx} className="symbol-item">
+                      <div className="symbol-header">
+                        <span className="symbol-name">{ref.symbolName}</span>
+                        <span className="symbol-type">({ref.type.toUpperCase()})</span>
+                        <span className="symbol-file" title={`定義ファイル: ${ref.fileName}`}>
+                          📄 {ref.fileName}
+                        </span>
+                      </div>
+                      <div className="symbol-definition">
+                        <code>{ref.definition.substring(0, 72).trimEnd()}</code>
+                        <span className="symbol-line">（行 {ref.lineNumber}）</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
