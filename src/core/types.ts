@@ -38,17 +38,23 @@ export type AsmStatement = {
   operandsText?: string;
   comment?: string;
   tokens: AsmToken[];
+  sourceFile?: string;        // 外部ファイルから読み込まれた場合のファイル名
+  isExpanded?: boolean;       // マクロ展開された行かどうか（非推奨: 展開行を表示しないため）
+  expandedFrom?: string;      // 展開元のマクロ名（非推奨: 展開行を表示しないため）
+  isMacroCall?: boolean;      // マクロ呼び出し行かどうか
+  macroName?: string;         // 呼び出されたマクロ名
   // 将来の拡張用フィールド
   instruction?: {
     mnemonic: string;
     format?: string;          // 命令フォーマット（RR, RX, RS, etc.）
     addressingMode?: string;
+    description?: string;     // 命令の説明
     operands?: Operand[];
   };
   errors?: ParseError[];
 };
 
-export type OperandType = "register" | "memory" | "immediate" | "base-displacement" | "indexed" | "string";
+export type OperandType = "register" | "memory" | "immediate" | "base-displacement" | "indexed" | "string" | "number";
 
 export type Operand = {
   type: OperandType;
@@ -87,8 +93,10 @@ export type SymbolDefinition = {
 export type MacroDefinition = {
   name: string;
   parameters: string[];
-  body: AsmStatement[];
+  body: AsmStatement[];  // 解析済みのステートメント
+  bodyLines?: string[];  // 元の行テキスト（展開用、パラメータ置換用）
   definedAt: number;
+  sourceFile?: string;  // マクロ定義が定義されたソースファイル
 };
 
 // 解析結果の全体構造

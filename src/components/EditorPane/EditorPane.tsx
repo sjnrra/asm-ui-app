@@ -24,9 +24,9 @@ export const EditorPane = ({ text, setText, onCursorChange }: EditorPaneProps) =
   // フォントを等幅に設定（z/OSの固定カラム形式に対応）
   useEffect(() => {
     if (textareaRef.current) {
-      textareaRef.current.style.fontFamily = "monospace";
+      textareaRef.current.style.fontFamily = "'Consolas', 'Monaco', 'Courier New', monospace";
       textareaRef.current.style.fontSize = "14px";
-      textareaRef.current.style.lineHeight = "1.5";
+      textareaRef.current.style.lineHeight = "1.6";
     }
   }, []);
 
@@ -34,7 +34,7 @@ export const EditorPane = ({ text, setText, onCursorChange }: EditorPaneProps) =
     <div className="editor-pane">
       <div className="editor-header">
         <span className="editor-title">アセンブリソース</span>
-        <span className="editor-info">固定カラム形式（1-72カラム）</span>
+        <span className="editor-info">固定カラム形式（1-80カラム）</span>
       </div>
       <textarea
         ref={textareaRef}

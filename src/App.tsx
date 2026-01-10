@@ -1,169 +1,257 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { EditorPane } from "./components/EditorPane/EditorPane";
 import { HighlightedView } from "./components/HighlightedView/HighlightedView";
 import { DetailPanel } from "./components/panels/DetailPanel";
 import { InstructionPanel } from "./components/panels/InstructionPanel";
 import { LabelPanel } from "./components/panels/LabelPanel";
 import { OperandPanel } from "./components/panels/OperandPanel";
+import { FilesPanel } from "./components/panels/FilesPanel";
 import { MainLayout } from "./layout/MainLayout";
-import { parse } from "./core/parser";
+import { AssemblyParser } from "./core/parser";
 import { analyze } from "./core/analyser";
+import { FileManager } from "./core/fileManager";
+import type { AssemblyResult } from "./core/types";
 import "./App.css";
 import "./styles/layout.css";
 import "./styles/highlight.css";
 
 const SAMPLE_CODE = `*=====================================================================*
-*        MVS STANDARD HOUSE KEEPING PROCEDURE                         *
+*        MACRO EXPANSION DEMONSTRATION                                *
+*        マクロ展開確認用サンプルプログラム                            *
+*        =============================================================*
+*        このサンプルでは、外部ファイルから読み込んだマクロ命令が      *
+*        どのように展開されるかを確認できます。                      *
 *=====================================================================*
-*                                  *----------------------------------*
-*                                  *  ENTRY PROCESSING                *
-*                                  *----------------------------------*
-MYASMPGM CSECT ,                        DEFINE CONTROL SECTION
-MYASMPGM AMODE 31                       DEFINE DEFAULT AMODE=31
-MYASMPGM RMODE 24                       DEFINE DEFAULT RMODE=24
-         USING *,12                     DEFINE BASE REGISTER
-         SAVE  (14,12),,*               SAVE CALLER REGISTERS
-         LA    12,0(,15)                GR12 --> OUR 1ST BASE ADDRESS
-         LR    15,13                    SAVE CALLER SAVEAREA
-         CNOP  0,4                      INSURE FULL WORD BOUNDARY
-         BAS   13,*+4+72                AROUND OUR SAVEAREA
-         DC    18F'-1'                  OUR GPR SAVEAREA
-         ST    15,4(,13)                SAVE CALLER SAVEAREA POINTER
-         ST    13,8(,15)                SET BACK CHAIN FOR LINK TRACE
+*        Step 1: レジスタEQU定義を読み込み (REGS.INC)
+*---------------------------------------------------------------------*
+         COPY  REGS                     INCLUDE REGISTER EQUATES
+         SPACE ,
+*---------------------------------------------------------------------*
+*        Step 2: 定数定義を読み込み (CONSTANTS.INC)
+*---------------------------------------------------------------------*
+         COPY  CONSTANTS                INCLUDE CONSTANT DEFINITIONS
+         SPACE ,
+*---------------------------------------------------------------------*
+*        Step 3: マクロ定義を読み込み (MACROS.MAC)
+*        ⚠️ この行をクリックすると、マクロ定義の内容が表示されます   *
+*---------------------------------------------------------------------*
+         COPY  MACROS                   INCLUDE MACRO DEFINITIONS
          SPACE ,
 ***********************************************************************
-*        MAIN LINE PROCESSING.                                        *
-*        =====================================================        *
-*        GR1 -- EXEC PARAMETER PLIST                                  *
-*        GR12 - BASE REGISTER                                         *
-*        GR13 - OUR REGISTER SAVEAREA                                 *
-*---------------------------------------------------------------------*
-*        SAMPLE CODE OF 'MVS ADVANCED SKILL Vol-2' CHAPTER 5.5        *
-*        =====================================================        *
-*        EXCP PROGRAMMING EXERCISE:                                   *
-*        READ DEVICE CHARACTERISTICS.                                 *
-*---------------------------------------------------------------------*
-*        //GO       EXEC PGM=LOADER,COND=(5,LT,ASM),                  *
-*        //SYSUT1   DD   ... ...,VOL=SER=volnam  <===                 *
+*        CONTROL SECTION                                              *
 ***********************************************************************
-         USING IHADCB,UT1DCB            ADDRESS TO SYSUT1 DCB
-         USING IOBSTDRD,IOBAREA         ADDRESS TO IOB STD SECTION
-*                                  *----------------------------------*
-*                                  *  OPEN TARGET DATASET/DEVICE      *
-*                                  *----------------------------------*
-         OPEN  (UT1DCB)                 OPEN TARGET VOLUME
-         L     R1,DCBDEBAD              LOAD DEB ADDRESS
-         LA    R1,DEBBASND-DEBBASIC(,R1)   LOCATE TO DASD SECTION
-         MVC   IOBCC,DEBSTRCC-DEBDASD(R1)  SET DATASET EXTENT(CCCC)
-         MVC   IOBHH,DEBSTRHH-DEBDASD(R1)  SET DATASET EXTENT(HHHH)
+MYPROG   CSECT ,                        DEFINE CONTROL SECTION
+MYPROG   AMODE 31                       DEFINE DEFAULT AMODE=31
+MYPROG   RMODE 24                       DEFINE DEFAULT RMODE=24
          SPACE ,
-*                                  *----------------------------------*
-*                                  *  BUILD IOB                       *
-*                                  *----------------------------------*
-         OI    IOBFLAG1,IOBUNREL        INDICATE UNRELATED I/O
-         LA    R0,EXCPECB
-         ST    R0,IOBECBPT              SET ECB ADDRESS
-         LA    R0,UT1DCB
-         STCM  R0,B'0111',IOBDCBPB      SET DCB ADDRESS
-         LA    R0,CCW
-         ST    R0,IOBSTART              SET CCW ADDRESS
+*=====================================================================*
+*        マクロ展開例 1: SAVEREGS (パラメータ付き)                   *
+*        ⚠️ この行をクリックすると、マクロ展開後の内容が確認できます *
+*=====================================================================*
+ENTRY    EQU   *                        PROGRAM ENTRY POINT
+         SAVEREGS                       MACRO: SAVE REGISTERS
          SPACE ,
-*                                  *----------------------------------*
-*                                  *  DO PHYSICAL I/O PROCESSING      *
-*                                  *----------------------------------*
-         MVI   EXCPECB,0                CLEAR ECB
-         EXCP  IOBAREA                  ISSUE EXCP I/O
-         WAIT  ECB=EXCPECB              WAIT FOR I/O COMPLETION
+*=====================================================================*
+*        マクロ展開例 2: LOADCONST (パラメータ2つ)                   *
+*        ⚠️ これらの行をクリックすると、マクロ展開を確認できます     *
+*=====================================================================*
+         LOADCONST R1,MAXLEN            MACRO: LOAD CONST
+         LOADCONST R2,BUFSIZE           MACRO: LOAD CONST
+         LOADCONST R3,4096              MACRO: LOAD CONST VALUE 4096
          SPACE ,
-*                                  *----------------------------------*
-*                                  *  ENDING PROCESSING               *
-*                                  *----------------------------------*
-         OPEN  (SNAPDCB,OUTPUT)         OPEN SNAPDUMP DATASET
-         SNAP  DCB=SNAPDCB,SDATA=DM,    PRINT DATA MANAGEMENT AREA     +
-               STORAGE=(DATAAREA,DATAEND-1)               AND USER DATA
-         CLOSE SNAPDCB                  CLOSE SNAPDUMP DATASET
+*=====================================================================*
+*        マクロ展開例 3: STOREREG (パラメータ2つ)                    *
+*=====================================================================*
+         STOREREG R1,BUFFERLEN          MACRO: STORE REGISTER
+         STOREREG R2,BUFFERSIZE         MACRO: STORE REGISTER
          SPACE ,
-         CLOSE UT1DCB                   CLOSE TARGET VOLUME
-         IC    RF,IOBECBCC              LOAD EXCP COMPLETION CODE
-         SVC   3                        RETURN TO OS(END OF PROGRAM)
-         EJECT ,
+*=====================================================================*
+*        通常の命令 (マクロではない)                                  *
+*=====================================================================*
+         LA    R4,WORKAREA              LOAD WORKAREA ADDRESS
+         LA    R5,COUNT                 LOAD COUNT ADDRESS
+         ST    R1,0(R4)                 STORE TO WORKAREA
+         L     R6,0(R4)                 LOAD FROM WORKAREA
+         SPACE ,
+*=====================================================================*
+*        マクロ展開例 4: RESTOREREGS (パラメータなし)                *
+*        ⚠️ この行をクリックすると、マクロ展開を確認できます         *
+*=====================================================================*
+EXIT     EQU   *                        EXIT LABEL
+         RESTOREREGS                    MACRO: RESTORE REGISTERS (⚡展開)
+         SPACE ,
+*=====================================================================*
+*        定数の使用 (EQU定義された定数)                               *
+*        ⚠️ これらの定数は CONSTANTS.INC から読み込まれています      *
+*=====================================================================*
+         MVI   FLAG,FLAGON              SET FLAG ON (📄 CONSTANTS.INC)
+         C     R6,=F'80'                COMPARE WITH MAXLEN (📄 CONSTANTS.INC)
+         BNE   ERROR                    BRANCH IF NOT EQUAL
+         SPACE ,
+SUCCESS  EQU   *                        SUCCESS LABEL
+         LOADCONST R15,RETCODE          MACRO: LOAD RETURN CODE (⚡展開)
+         B     EXIT                     BRANCH TO EXIT
+         SPACE ,
+ERROR    EQU   *                        ERROR LABEL
+         MVI   FLAG,FLAGOFF             SET FLAG OFF (📄 CONSTANTS.INC)
+         LOADCONST R15,ERRCODE          MACRO: LOAD ERROR CODE (⚡展開)
+         SPACE ,
 ***********************************************************************
 *        DATA AREA                                                    *
 ***********************************************************************
-         DS    ((((*-MYASMPGM)/32+1)*32)-(*-MYASMPGM))X  (ADJUST TO    +
-                                   32BYTE BOUNDARY ACCORDING TO THE STOR
-                                   AGE DUMP BEGINNING ADDRESS BOUNDARY)
-DATAAREA DS    0D                       BEGIN OF DATA AREA
-*---------------------------------------------------------------------*
-*                                  *----------------------------------*
-*                                  *  CHANNEL PROGRAM                 *
-*                                  *----------------------------------*
-CCW      DS    0D
-         CCW   X'64',DEVCHAR,X'00',64   READ DEVICE CHARACTERISTICS
+SAVEAREA DS    18F                      SAVE AREA (for SAVEREGS macro)
+         DS    0F                       ALIGN TO FULLWORD
+WORKAREA DS    18F                      WORK AREA (72 BYTES)
+COUNT    DC    F'0'                     COUNT VARIABLE (FULLWORD)
+BUFFERLEN DC   F'0'                     BUFFER LENGTH
+BUFFERSIZE DC  F'0'                     BUFFER SIZE
+FLAG     DC    X'00'                    FLAG BYTE
+MSG      DC    CL10'HELLO'              MESSAGE CONSTANT
+BUFFER   DS    CL80                     BUFFER AREA (80 BYTES)
          SPACE ,
-*                                  *----------------------------------*
-*                                  *  EXCP INTERFACE PARAMETERS       *
-*                                  *----------------------------------*
-         DC    A(C'IOB.')               EYE-CATCHER
-IOBAREA  DC    10F'0'                   IOB(40BYTES)
-EXCPECB  DC    F'0'                     ECB FOR I/O SYNCHRONIZE
-UT1DCB   DCB   DDNAME=SYSUT1,MACRF=E    DCB FOR EXCP
+*---------------------------------------------------------------------*
+*        LITERAL POOL                                                 *
+*---------------------------------------------------------------------*
+         LTORG ,                        LITERAL POOL
          SPACE ,
-*                                  *----------------------------------*
-*                                  *  WORKING DATA                    *
-*                                  *----------------------------------*
-         DS    0D
-         DS    XL8       ADJUST TO 32BYTE BOUNDARY ACCORDING TO THE STOR
-                                   AGE DUMP BEGINNING ADDRESS BOUNDARY)
-         DC    CL8'DEVCHAR'             EYE-CATCHER
-DEVCHAR  DC    XL64'00'                 DEV.CHAR DATA READ AREA
-         SPACE ,
-DATAEND  DS    0D                       END OF DATA AREA(SNAP AREA)
-SNAPDCB  DCB   DDNAME=SNAPDUMP,         DCB FOR SNAP DUMP DATASET      +
-               DSORG=PS,MACRF=W,RECFM=VBA,BLKSIZE=1632,LRECL=125
 *---------------------------------------------------------------------*
-         LTORG ,                        LITERAL POOL AT HERE
-         DROP  ,                        FORGET ALL BASE REGISTERS
-         EJECT ,
-***********************************************************************
-*        DATA AREA (OUTSIDE OUR BASE)                                 *
-***********************************************************************
+*        END OF PROGRAM                                               *
 *---------------------------------------------------------------------*
-*        LOCAL WORKAREA                                               *
-*---------------------------------------------------------------------*
-*---------------------------------------------------------------------*
-*        DSECTS                                                       *
-*---------------------------------------------------------------------*
-         IEZIOB DSECT=YES               IOB
-         DCBD  DEVD=DA                  DCB
-         IEZDEB                         DEB
-*---------------------------------------------------------------------*
-*        S/370, ESA/390 REGISTER EQUATES                              *
-*---------------------------------------------------------------------*
-         YREGS ,                        OS: REGISTER EQUATES
-RA       EQU   10                       ADD EQUATION FOR GR10
-RB       EQU   11                       ADD EQUATION FOR GR11
-RC       EQU   12                       ADD EQUATION FOR GR12
-RD       EQU   13                       ADD EQUATION FOR GR13
-RE       EQU   14                       ADD EQUATION FOR GR14
-RF       EQU   15                       ADD EQUATION FOR GR15
-         END
+         END   MYPROG                   END OF PROGRAM
 `;
 
 function App() {
   const [sourceText, setSourceText] = useState(SAMPLE_CODE);
+  const [parsedSourceText, setParsedSourceText] = useState(SAMPLE_CODE); // パース対象のソーステキスト
   const [selectedLineNumber, setSelectedLineNumber] = useState<number | undefined>();
+  const [fileUpdateTrigger, setFileUpdateTrigger] = useState(0); // ファイル更新を追跡
+  const [isParsing, setIsParsing] = useState(false); // パース中フラグ
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const parseTimeoutRef = useRef<number | null>(null);
+  
+  // FileManagerを保持（useMemoでインスタンスを保持）
+  const fileManager = useMemo(() => new FileManager(), []);
+  const [dependenciesLoaded, setDependenciesLoaded] = useState(false);
 
-  // ソースコードを解析
+  // アプリ起動時に依存ファイルを自動読み込み
+  useEffect(() => {
+    const loadDependencies = async () => {
+      try {
+        // dependencies.jsonからファイルリストを取得
+        const response = await fetch("/dependencies/dependencies.json");
+        if (!response.ok) {
+          console.log("dependencies.jsonが見つかりません。依存ファイルの自動読み込みをスキップします。");
+          setDependenciesLoaded(true);
+          return;
+        }
+
+        const data = await response.json();
+        const files = data.files || [];
+
+        // 各ファイルを読み込む
+        const loadPromises = files.map(async (fileName: string) => {
+          try {
+            const fileResponse = await fetch(`/dependencies/${fileName}`);
+            if (fileResponse.ok) {
+              const content = await fileResponse.text();
+              fileManager.addFile(fileName, content);
+              console.log(`依存ファイル "${fileName}" を自動読み込みしました`);
+            } else {
+              console.warn(`依存ファイル "${fileName}" が見つかりません`);
+            }
+          } catch (error) {
+            console.error(`依存ファイル "${fileName}" の読み込みに失敗しました:`, error);
+          }
+        });
+
+        await Promise.all(loadPromises);
+        setDependenciesLoaded(true);
+        setFileUpdateTrigger((prev) => prev + 1); // 読み込み完了後に再解析を促す
+      } catch (error) {
+        console.error("依存ファイルの自動読み込みに失敗しました:", error);
+        setDependenciesLoaded(true);
+      }
+    };
+
+    loadDependencies();
+  }, [fileManager]); // fileManagerが初期化されたら実行
+
+  // デバウンス: 入力が完了してから500ms後にパースを実行
+  useEffect(() => {
+    if (parseTimeoutRef.current) {
+      clearTimeout(parseTimeoutRef.current);
+    }
+
+    setIsParsing(true);
+    parseTimeoutRef.current = window.setTimeout(() => {
+      setParsedSourceText(sourceText);
+      setIsParsing(false);
+    }, 500); // 500ms待機
+
+    return () => {
+      if (parseTimeoutRef.current !== null) {
+        window.clearTimeout(parseTimeoutRef.current);
+      }
+    };
+  }, [sourceText]);
+
+  // ファイルアップロード処理
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
+
+    const filePromises: Promise<void>[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const promise = new Promise<void>((resolve, reject) => {
+        const reader = new FileReader();
+        
+        reader.onload = (e) => {
+          const content = e.target?.result as string;
+          fileManager.addFile(file.name, content);
+          console.log(`ファイル "${file.name}" を読み込みました (${content.length} バイト)`);
+          resolve();
+        };
+        
+        reader.onerror = () => {
+          console.error(`ファイル "${file.name}" の読み込みに失敗しました`);
+          reject(new Error(`Failed to read ${file.name}`));
+        };
+        
+        reader.readAsText(file);
+      });
+
+      filePromises.push(promise);
+    }
+
+    // すべてのファイルの読み込みが完了したら再解析を促す
+    await Promise.all(filePromises);
+    setFileUpdateTrigger((prev) => prev + 1); // トリガーを更新して再解析を促す
+  };
+
+  // ソースコードを解析（デバウンスされたテキストを使用）
   const parseResult = useMemo(() => {
+    if (isParsing) {
+      // パース中の場合は前回の結果を返す（または空の結果）
+      return {
+        statements: [],
+        errors: [],
+        symbols: new Map(),
+        context: { symbols: new Map(), macros: new Map() },
+      } as AssemblyResult;
+    }
+
     try {
-      const result = parse(sourceText);
+      const parser = new AssemblyParser(fileManager);
+      const result = parser.parse(parsedSourceText);
       const analyzed = analyze(result);
       console.log("Parse result:", {
         statementsCount: analyzed.statements.length,
         errorsCount: analyzed.errors.length,
         symbolsCount: analyzed.symbols.size,
-        firstStatement: analyzed.statements[0],
+        macrosCount: analyzed.context.macros?.size || 0,
+        loadedFiles: fileManager.getAllFiles().map(f => f.name),
       });
       return analyzed;
     } catch (error) {
@@ -173,9 +261,9 @@ function App() {
         errors: [],
         symbols: new Map(),
         context: { symbols: new Map(), macros: new Map() },
-      };
+      } as AssemblyResult;
     }
-  }, [sourceText]);
+  }, [parsedSourceText, fileManager, fileUpdateTrigger, isParsing]);
 
   const selectedStatement = useMemo(() => {
     if (selectedLineNumber === undefined) return undefined;
@@ -187,11 +275,41 @@ function App() {
       <header className="app-header">
         <h1>z/OS アセンブラ解析支援UI</h1>
         <div className="app-info">
-          <span>ステートメント数: {parseResult.statements.length}</span>
-          <span>シンボル数: {parseResult.symbols.size}</span>
-          {parseResult.errors.length > 0 && (
-            <span className="error-count">エラー: {parseResult.errors.length}</span>
+          {isParsing && <span style={{ color: "#ffa500" }}>解析中...</span>}
+          {!isParsing && (
+            <>
+              <span>ステートメント数: {parseResult.statements.length}</span>
+              <span>シンボル数: {parseResult.symbols.size}</span>
+              <span>マクロ数: {parseResult.context.macros?.size || 0}</span>
+              <span>読み込み済みファイル: {fileManager.getAllFiles().length}</span>
+              {!dependenciesLoaded && <span style={{ color: "#ffa500" }}>依存ファイル読み込み中...</span>}
+              {parseResult.errors.length > 0 && (
+                <span className="error-count">エラー: {parseResult.errors.length}</span>
+              )}
+            </>
           )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept=".asm,.mac,.inc,.maclib,.txt"
+            onChange={handleFileUpload}
+            style={{ display: "none" }}
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              padding: "4px 12px",
+              background: "#007acc",
+              color: "white",
+              border: "none",
+              borderRadius: "3px",
+              cursor: "pointer",
+              fontSize: "12px",
+            }}
+          >
+            ファイル読み込み
+          </button>
         </div>
         {parseResult.errors.length > 0 && (
           <div className="error-list">
@@ -223,6 +341,7 @@ function App() {
                   statements={parseResult.statements}
                   selectedLineNumber={selectedLineNumber}
                   onLineClick={setSelectedLineNumber}
+                  context={parseResult.context}
                 />
               ) : (
                 <div className="empty-message">
@@ -234,10 +353,14 @@ function App() {
               )}
             </div>
             <div className="right-panels">
-              <DetailPanel statement={selectedStatement} />
-              <InstructionPanel statement={selectedStatement} />
+              <DetailPanel 
+                statement={selectedStatement} 
+                context={parseResult.context}
+              />
+              <InstructionPanel statement={selectedStatement} context={parseResult.context} />
               <OperandPanel statement={selectedStatement} />
               <LabelPanel symbols={parseResult.symbols} />
+              <FilesPanel files={fileManager.getAllFiles()} />
             </div>
           </div>
         }

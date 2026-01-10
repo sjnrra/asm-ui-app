@@ -9,7 +9,9 @@ export const OperandPanel = ({ statement }: OperandPanelProps) => {
   if (!statement || !statement.instruction?.operands || statement.instruction.operands.length === 0) {
     return (
       <div className="operand-panel">
-        <h3>オペランド解析</h3>
+        <div className="panel-header">
+          <h3>オペランド解析</h3>
+        </div>
         <p className="empty-state">オペランドを含む行を選択してください</p>
       </div>
     );
@@ -66,7 +68,9 @@ export const OperandPanel = ({ statement }: OperandPanelProps) => {
 
   return (
     <div className="operand-panel">
-      <h3>オペランド解析</h3>
+      <div className="panel-header">
+        <h3>オペランド解析</h3>
+      </div>
       <div className="operand-content">
         {operands.map((op, idx) => renderOperand(op, idx))}
       </div>

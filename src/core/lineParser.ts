@@ -59,45 +59,60 @@ export function parseLine(line: string, lineNumber: number): AsmStatement {
   const isContinuation = line.length > 71 && line[71] !== " " && line[71] !== "\t" && line[71] !== "";
 
   // カラム1-8: ラベル
-  // カラム1-8に非空白文字があり、カラム9が空白の場合にラベルと判定
+  // z/OSアセンブラの固定カラム形式では、ラベルはカラム1-8に収まる必要がある
+  // ただし、実際のファイルでは、ラベルが8文字を超える場合もある（例: RESTOREREGS, LOADCONST）
+  // その場合、カラム1-8（またはカラム1-8の最初の非空白文字から8文字）をラベルとして扱う
+  // ラベルが8文字を超える場合、最初の8文字のみがラベルとして有効
   const labelArea = line.substring(0, Math.min(8, line.length));
   const labelTrimmed = labelArea.trim();
   
-  // ラベルの条件: カラム1-8に非空白文字があり、カラム9が空白または行の終端
-  if (labelTrimmed.length > 0 && (line.length <= 8 || line[8] === " " || line[8] === "\t")) {
-    label = labelTrimmed;
-    // ラベル部分の実際の位置を計算
-    const labelStart = labelArea.length - labelArea.trimStart().length;
-    const labelEnd = labelStart + labelTrimmed.length;
+  // ラベルの条件: カラム1-8に非空白文字がある場合
+  // カラム9が空白でない場合でも、カラム1-8の最初の非空白文字から最大8文字までをラベルとして扱う
+  if (labelTrimmed.length > 0) {
+    // カラム1-8の最初の非空白文字の位置を取得
+    const labelStartInArea = labelArea.length - labelArea.trimStart().length;
+    // ラベルは最大8文字（カラム1-8に収まる）
+    const maxLabelLength = Math.min(8 - labelStartInArea, labelTrimmed.length);
+    const labelInArea = labelTrimmed.substring(0, maxLabelLength);
     
-    // ラベル前の空白
-    if (labelStart > 0) {
-      tokens.push({
-        type: TokenType.WHITESPACE,
-        text: labelArea.substring(0, labelStart),
-        columnStart: 0,
-        columnEnd: labelStart,
-      });
-    }
-    
-    // ラベル
-    tokens.push({
-      type: TokenType.LABEL,
-      text: labelTrimmed,
-      columnStart: labelStart,
-      columnEnd: labelEnd,
-    });
-    
-    // カラム9の空白（ラベルの後からカラム9まで）
-    if (line.length > 8) {
-      const whitespaceAfterLabel = line.substring(labelEnd, 9);
-      if (whitespaceAfterLabel.length > 0) {
+    if (labelInArea.length > 0) {
+      label = labelInArea;
+      // ラベル部分の実際の位置を計算
+      const labelStart = labelStartInArea;
+      const labelEnd = labelStart + labelInArea.length;
+      
+      // ラベル前の空白
+      if (labelStart > 0) {
         tokens.push({
           type: TokenType.WHITESPACE,
-          text: whitespaceAfterLabel,
-          columnStart: labelEnd,
-          columnEnd: 9,
+          text: labelArea.substring(0, labelStart),
+          columnStart: 0,
+          columnEnd: labelStart,
         });
+      }
+      
+      // ラベル
+      tokens.push({
+        type: TokenType.LABEL,
+        text: labelInArea,
+        columnStart: labelStart,
+        columnEnd: labelEnd,
+      });
+      
+      // カラム9の空白（ラベルの後からカラム9まで）
+      // カラム9が空白でない場合でも、カラム9までの空白を追加
+      if (line.length > 8) {
+        // カラム9が空白でない場合、ラベルが8文字を超えている可能性がある
+        // その場合、カラム9から命令部分の開始までを空白として扱う
+        const whitespaceAfterLabel = line.substring(labelEnd, 9);
+        if (whitespaceAfterLabel.length > 0) {
+          tokens.push({
+            type: TokenType.WHITESPACE,
+            text: whitespaceAfterLabel,
+            columnStart: labelEnd,
+            columnEnd: 9,
+          });
+        }
       }
     }
   }
@@ -105,41 +120,372 @@ export function parseLine(line: string, lineNumber: number): AsmStatement {
   // カラム10-71: 命令とオペランド
   // z/OSアセンブラでは、ラベルがない場合でも命令はカラム10（インデックス9）から始まる
   // ただし、カラム1-8が完全に空白で、カラム9以前から命令が始まる場合は柔軟に対応
-  const instructionStart = label ? 9 : (firstNonSpaceInLine < 9 && firstNonSpaceInLine >= 0 ? firstNonSpaceInLine : 9);
+  // ラベルがある場合、命令はカラム10（インデックス9）から始まる
+  // ただし、ラベルが8文字を超える場合、命令はラベルの直後から始まる可能性がある
+  let instructionStart = 9; // デフォルトはカラム10
+  if (label) {
+    // ラベルがある場合、カラム9以降から命令を探す
+    // ラベルが8文字を超える場合、ラベルの終了位置の直後から命令を探す
+    // まず、ラベルがカラム9以降に続いているかどうかを確認
+    // カラム9以降で最初の非空白文字を探す
+    let firstNonSpaceAfterLabel = -1;
+    // ラベルが8文字を超える場合、ラベルの終了位置（最大8）以降から探す
+    const labelToken = tokens.find(t => t.type === TokenType.LABEL);
+    const labelEndPos = labelToken ? labelToken.columnEnd : 8;
+    for (let i = Math.max(9, labelEndPos); i < line.length; i++) {
+      if (!/\s/.test(line[i])) {
+        firstNonSpaceAfterLabel = i;
+        break;
+      }
+    }
+    if (firstNonSpaceAfterLabel >= 0) {
+      instructionStart = firstNonSpaceAfterLabel;
+    } else {
+      instructionStart = 9; // デフォルトはカラム10
+    }
+  } else {
+    // ラベルがない場合、カラム9以前から命令が始まる場合は柔軟に対応
+    instructionStart = firstNonSpaceInLine < 9 && firstNonSpaceInLine >= 0 ? firstNonSpaceInLine : 9;
+  }
   const instructionEnd = isContinuation ? 71 : Math.min(line.length, 72);
+  
+  // ラベルがない場合、カラム1-9の空白を追加（固定カラム形式を維持）
+  // 元の行の実際の空白を保持
+  if (!label && instructionStart === 9) {
+    // 元の行のカラム1-9部分を確認
+    const prefixLength = Math.min(9, line.length);
+    if (prefixLength > 0) {
+      const prefix = line.substring(0, prefixLength);
+      // 実際の空白文字を保持（タブは空白に変換）
+      const whitespaceText = prefix.replace(/\t/g, " ");
+      // 9文字に満たない場合は空白で埋める
+      const finalWhitespace = whitespaceText.length >= 9 
+        ? whitespaceText.substring(0, 9)
+        : whitespaceText + " ".repeat(9 - whitespaceText.length);
+      
+      tokens.push({
+        type: TokenType.WHITESPACE,
+        text: finalWhitespace,
+        columnStart: 0,
+        columnEnd: 9,
+      });
+    } else {
+      // 行が9文字未満の場合は9文字の空白を追加
+      tokens.push({
+        type: TokenType.WHITESPACE,
+        text: " ".repeat(9),
+        columnStart: 0,
+        columnEnd: 9,
+      });
+    }
+  }
+  
   let instructionPart = "";
   if (instructionStart < instructionEnd) {
-    instructionPart = line.substring(instructionStart, instructionEnd).trim();
+    // trim()せずに、元の行の命令部分を取得（先頭の空白は既にトークンとして追加済み）
+    const rawInstruction = line.substring(instructionStart, instructionEnd);
+    // 先頭と末尾の空白を削除（トークン化のため）
+    instructionPart = rawInstruction.trim();
+    // ただし、先頭の空白は既にトークンとして追加されているので、ここではtrimで問題なし
   }
 
   if (instructionPart) {
-    // コメント開始位置を探す（"*"が現れる位置、前後が空白または行頭の場合）
+    // コメント開始位置を探す（"*"が現れる位置、ただしオペランド内の*は除外）
+    // オペランド内の*（例: "*,12", "(,15)", "BAS 13,*+4+72"など）はコメントではない
     let commentStartIndex = -1;
     const originalPart = line.substring(instructionStart, instructionEnd);
-    const commentMarker = originalPart.indexOf("*");
     
-    if (commentMarker >= 0) {
-      // "*"の前が空白または行頭で、かつ"*"の後に空白または行末の場合、コメントとみなす
-      const beforeComment = commentMarker === 0 || /\s/.test(originalPart[commentMarker - 1]);
-      if (beforeComment) {
-        commentStartIndex = commentMarker;
+    // まず、オペコードとオペランドを分離
+    const parts = instructionPart.split(/\s+/, 2);
+    const opcodePart = parts[0] || "";
+    let operandsPart = parts[1] || "";
+    
+    // オペコードの位置を元の行で特定
+    const opcodeIndex = originalPart.indexOf(opcodePart);
+    
+    // オペコードの終了位置を取得
+    const opcodeEndInOriginal = opcodeIndex >= 0 ? opcodeIndex + opcodePart.length : -1;
+    
+    // オペコードの直後に空白が10個以上連続する場合、以降をコメントとして扱う
+    let skipNormalOperandParsing = false;
+    if (opcodeEndInOriginal >= 0 && opcodeEndInOriginal < originalPart.length) {
+      let spaceCount = 0;
+      let firstNonSpaceAfterOpcode = -1;
+      // オペコードの直後から空白をカウント
+      for (let i = opcodeEndInOriginal; i < originalPart.length; i++) {
+        if (/\s/.test(originalPart[i])) {
+          spaceCount++;
+        } else {
+          firstNonSpaceAfterOpcode = i;
+          break;
+        }
+      }
+      
+      // 空白が10個以上連続する場合、最初の非空白文字以降をコメントとして扱う
+      if (spaceCount >= 10 && firstNonSpaceAfterOpcode >= 0) {
+        // オペランド部分は空
+        operandsPart = "";
+        // コメント開始位置を設定（originalPart内の相対位置）
+        commentStartIndex = firstNonSpaceAfterOpcode;
+        skipNormalOperandParsing = true;
+      }
+    }
+    
+    // オペランド部分が存在する場合、オペランドとコメントを分離
+    // オペランドは空白1つで区切られるが、コメントは空白2つ以上で区切られる
+    if (operandsPart && !skipNormalOperandParsing) {
+      
+      if (opcodeEndInOriginal >= 0) {
+        // オペコードの終了位置から、最初の非空白文字（オペランドの開始）を探す
+        let operandStartInOriginal = -1;
+        for (let i = opcodeEndInOriginal; i < originalPart.length; i++) {
+          if (!/\s/.test(originalPart[i])) {
+            operandStartInOriginal = i;
+            break;
+          }
+        }
+        
+        if (operandStartInOriginal >= 0) {
+          // オペランドの終了位置を特定
+          // オペランドは、空白が1つのみで区切られるが、空白が2つ以上続いた後はコメント
+          let operandEndInOriginal = operandStartInOriginal;
+          let lastNonSpacePos = operandStartInOriginal;
+          let consecutiveSpaces = 0;
+          
+          for (let i = operandStartInOriginal; i < originalPart.length; i++) {
+            if (/\s/.test(originalPart[i])) {
+              consecutiveSpaces++;
+              // 空白が2つ以上続いた場合、オペランドの終了とみなす
+              if (consecutiveSpaces >= 2) {
+                // オペランドの終了位置は最後の非空白文字の位置+1
+                operandEndInOriginal = lastNonSpacePos;
+                break;
+              }
+            } else {
+              // 非空白文字が見つかった
+              consecutiveSpaces = 0;
+              lastNonSpacePos = i + 1;
+              operandEndInOriginal = i + 1;
+            }
+          }
+          
+          // オペランド部分を抽出（元の行から直接取得）
+          if (operandEndInOriginal > operandStartInOriginal) {
+            operandsPart = originalPart.substring(operandStartInOriginal, operandEndInOriginal).trim();
+            
+            // オペランド終了後に空白が2つ以上続いてテキストがある場合、コメントとして設定
+            let commentStartCandidate = -1;
+            let consecutiveSpaces = 0;
+            for (let i = operandEndInOriginal; i < originalPart.length; i++) {
+              if (/\s/.test(originalPart[i])) {
+                consecutiveSpaces++;
+                if (consecutiveSpaces >= 2 && commentStartCandidate < 0) {
+                  commentStartCandidate = i - consecutiveSpaces + 1;
+                }
+              } else {
+                // 非空白文字が見つかった
+                if (consecutiveSpaces >= 2 && commentStartCandidate >= 0) {
+                  // 空白が2つ以上続いた後にテキストがある = コメント
+                  commentStartIndex = commentStartCandidate;
+                  break;
+                }
+                // 空白が1つ以下の場合はオペランドの一部とみなす（これは起こらないはず）
+                consecutiveSpaces = 0;
+                commentStartCandidate = -1;
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    // オペランド部分が存在する場合、オペランド内の*を除外
+    if (operandsPart && operandsPart.trim() && commentStartIndex < 0) {
+      // オペランド部分を解析して、オペランドの終了位置を特定
+      // オペランドは括弧、カンマ、空白で区切られる
+      const trimmedOperands = operandsPart.trim();
+      
+      // オペランド部分内の*の位置をすべてチェック
+      // オペランド内の*のパターン: *,12, (,15), *+4, など
+      // オペランド内の*は、カンマ、括弧、演算子（+, -, *, /）の前後に現れる
+      
+      // より簡単な方法: オペランド部分全体を解析し、オペランドが終了した位置を特定
+      // オペランドの終了は、最後の非空白文字（*以外）の後、またはオペランドが*のみの場合
+      
+      // オペランド部分の最後の有効な文字（*以外の非空白文字）を探す
+      let lastValidCharIndex = -1;
+      for (let i = trimmedOperands.length - 1; i >= 0; i--) {
+        const char = trimmedOperands[i];
+        if (!/\s/.test(char) && char !== "*") {
+          lastValidCharIndex = i;
+          break;
+        }
+      }
+      
+      if (lastValidCharIndex >= 0) {
+        // オペランド部分の後に*がある場合をチェック
+        const afterOperand = trimmedOperands.substring(lastValidCharIndex + 1).trim();
+        if (afterOperand.startsWith("*")) {
+          // これはオペランドの後のコメント
+          // 元の行での位置を計算
+          const opcodeInOriginal = originalPart.indexOf(opcodePart);
+          if (opcodeInOriginal >= 0) {
+            const operandStartInOriginal = originalPart.indexOf(trimmedOperands, opcodeInOriginal + opcodePart.length);
+            if (operandStartInOriginal >= 0) {
+              commentStartIndex = operandStartInOriginal + lastValidCharIndex + 1 + (trimmedOperands.substring(lastValidCharIndex + 1).indexOf("*"));
+            }
+          }
+        }
+      } else {
+        // オペランドが*のみ、または*で構成されている場合
+        // これはオペランドとして扱う（コメントではない）
+      }
+    }
+    
+    // 上記の方法で見つからない場合、元の行から直接探す
+    if (commentStartIndex < 0) {
+      // オペランド部分の終了を特定する
+      // 元の行から、オペコード+オペランドの後に現れる*を探す
+      const opcodeIndex = originalPart.indexOf(opcodePart);
+      if (opcodeIndex >= 0) {
+        let searchStart = opcodeIndex + opcodePart.length;
+        
+        if (operandsPart) {
+          const trimmedOperands = operandsPart.trim();
+          // オペランド部分の位置を元の行で特定
+          const operandStart = originalPart.indexOf(trimmedOperands, searchStart);
+          if (operandStart >= 0) {
+            // オペランド部分の最後の非空白文字（*以外）を探す
+            let lastNonSpacePos = -1;
+            for (let i = trimmedOperands.length - 1; i >= 0; i--) {
+              if (!/\s/.test(trimmedOperands[i]) && trimmedOperands[i] !== "*") {
+                lastNonSpacePos = operandStart + i + 1;
+                break;
+              }
+            }
+            
+            if (lastNonSpacePos >= 0) {
+              searchStart = lastNonSpacePos;
+            } else {
+              // オペランドが*のみ、または*で終わる場合
+              // オペランド全体が*の場合は、その後の*を探さない（すべてオペランド）
+              // ただし、オペランド部分の後に空白+*がある場合はコメント
+              const operandEnd = operandStart + trimmedOperands.length;
+              searchStart = operandEnd;
+            }
+          }
+        }
+        
+        // オペランドの後に現れる*を探す（コメント）
+        let foundAsterisk = false;
+        for (let i = searchStart; i < originalPart.length; i++) {
+          if (/\s/.test(originalPart[i])) {
+            continue; // 空白はスキップ
+          }
+          if (originalPart[i] === "*") {
+            // *の前が空白で、*の後も空白または行末の場合、コメントとみなす
+            const beforeChar = i > 0 ? originalPart[i - 1] : "";
+            const afterChar = i < originalPart.length - 1 ? originalPart[i + 1] : "";
+            
+            if ((beforeChar === " " || beforeChar === "\t") && 
+                (afterChar === " " || afterChar === "\t" || afterChar === "" || i === originalPart.length - 1)) {
+              commentStartIndex = i;
+              foundAsterisk = true;
+              break;
+            }
+          } else {
+            // 非空白の非*文字が見つかった場合、コメントではない
+            break;
+          }
+        }
+        
+        // *が見つからない場合、オペランド終了後に空白が2つ以上続いた後にテキストがある場合はコメント
+        if (!foundAsterisk && commentStartIndex < 0) {
+          // オペコード+オペランドの終了位置を特定（searchStartは既にオペランド終了位置を指している）
+          let instructionEndPos = searchStart;
+          
+          // オペランド部分が存在する場合、オペランドの終了位置をより正確に計算
+          if (operandsPart && operandsPart.trim()) {
+            const trimmedOperands = operandsPart.trim();
+            // オペランド部分の位置を元の行で特定
+            const operandStart = originalPart.indexOf(trimmedOperands, opcodeIndex + opcodePart.length);
+            if (operandStart >= 0) {
+              // オペランド部分の終了位置を計算（括弧やカンマを考慮）
+              let operandEnd = operandStart + trimmedOperands.length;
+              
+              // 開き括弧がある場合、対応する閉じ括弧まで含める
+              let openParens = 0;
+              for (let i = 0; i < trimmedOperands.length; i++) {
+                if (trimmedOperands[i] === "(") openParens++;
+                else if (trimmedOperands[i] === ")") openParens--;
+              }
+              
+              // 開き括弧が閉じられていない場合、元の行で閉じ括弧を探す
+              if (openParens > 0) {
+                for (let j = operandEnd; j < originalPart.length && j < operandEnd + 20; j++) {
+                  if (originalPart[j] === ")") {
+                    operandEnd = j + 1;
+                    break;
+                  }
+                  if (!/\s/.test(originalPart[j]) && originalPart[j] !== ")") {
+                    break;
+                  }
+                }
+              }
+              
+              // オペランドの最後の有効文字の位置を探す
+              let lastValidPos = operandStart;
+              for (let i = trimmedOperands.length - 1; i >= 0; i--) {
+                const char = trimmedOperands[i];
+                if (!/\s/.test(char)) {
+                  lastValidPos = operandStart + i + 1;
+                  break;
+                }
+              }
+              
+              instructionEndPos = Math.max(operandEnd, lastValidPos);
+            }
+          }
+          
+          // 命令の終了位置から、空白が2つ以上続いた後に非空白文字があるかチェック
+          let consecutiveSpaces = 0;
+          let commentCandidateStart = -1;
+          for (let i = instructionEndPos; i < originalPart.length; i++) {
+            if (/\s/.test(originalPart[i])) {
+              consecutiveSpaces++;
+              if (consecutiveSpaces >= 2 && commentCandidateStart < 0) {
+                commentCandidateStart = i - consecutiveSpaces + 1;
+              }
+            } else {
+              // 非空白文字が見つかった
+              if (consecutiveSpaces >= 2 && commentCandidateStart >= 0) {
+                // 空白が2つ以上続いた後にテキストがある = コメント
+                commentStartIndex = commentCandidateStart;
+                break;
+              }
+              // 空白が1つ以下の場合はオペランドの一部とみなす（コメントではない）
+              consecutiveSpaces = 0;
+              commentCandidateStart = -1;
+            }
+          }
+        }
       }
     }
 
     if (commentStartIndex >= 0) {
       // コメントがある場合
-      const instruction = instructionPart.substring(0, instructionPart.indexOf("*")).trim();
+      const instruction = originalPart.substring(0, commentStartIndex).trim();
       comment = originalPart.substring(commentStartIndex).trim();
       
       if (instruction) {
-        // 命令部分をトークン化
+        // 命令部分をトークン化（オペランド内の*を含む）
         const instTokens = tokenizeInstructionPart(instruction, instructionStart);
         tokens.push(...instTokens);
         
         // オペコードとオペランドを抽出
-        const parts = instruction.split(/\s+/, 2);
-        opcode = parts[0];
-        operandsText = parts[1];
+        const instructionParts = instruction.split(/\s+/, 2);
+        opcode = instructionParts[0];
+        operandsText = instructionParts[1];
       }
       
       // コメントトークン（元の文字列位置を使用）
@@ -151,7 +497,7 @@ export function parseLine(line: string, lineNumber: number): AsmStatement {
         columnEnd: instructionEnd,
       });
     } else {
-      // コメントなし
+      // コメントなし - オペランド内の*を含む命令全体をトークン化
       const instTokens = tokenizeInstructionPart(instructionPart, instructionStart);
       tokens.push(...instTokens);
       
