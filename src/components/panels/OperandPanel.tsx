@@ -2,6 +2,7 @@
 import type { AsmStatement, Operand, ParseContext } from "../../core/types";
 import { FileManager } from "../../core/fileManager";
 import { parseLine } from "../../core/lineParser";
+import { AssemblyAnalyzer } from "../../core/analyser";
 
 interface OperandPanelProps {
   statement?: AsmStatement;
@@ -218,8 +219,12 @@ export const OperandPanel = ({ statement, context, fileManager, statements }: Op
   // オペランドがない場合のチェック
   const hasOperands = statement?.instruction?.operands && statement.instruction.operands.length > 0;
   const hasOperandsText = statement?.operandsText && statement.operandsText.trim().length > 0;
+  
+  // 継続行の場合でもオペランド解析情報を表示する
+  const isContinuation = statement?.isContinuation === true;
+  const shouldShowOperandInfo = hasOperands || hasOperandsText || isContinuation;
 
-  if (!statement || (!hasOperands && !hasOperandsText)) {
+  if (!statement || !shouldShowOperandInfo) {
     return (
       <div className="operand-panel">
         <div className="panel-header">
@@ -230,13 +235,42 @@ export const OperandPanel = ({ statement, context, fileManager, statements }: Op
     );
   }
 
-  const operands = statement.instruction?.operands || [];
+  // 継続行の場合、継続元の行を探してオペランドを解析
+  let operands = statement.instruction?.operands || [];
+  
+  if (isContinuation && hasOperandsText && statement.operandsText && statement.continuationOf && statements) {
+    // 継続元の行を探す
+    const continuationSource = statements.find(s => s.lineNumber === statement.continuationOf);
+    if (continuationSource && continuationSource.opcode) {
+      // 継続元の行のオペコードを使ってオペランドを解析
+      const analyzer = new AssemblyAnalyzer();
+      // 一時的なステートメントを作成してオペランドを解析
+      const tempStatement: AsmStatement = {
+        lineNumber: statement.lineNumber,
+        rawText: statement.rawText,
+        opcode: continuationSource.opcode,
+        operandsText: statement.operandsText,
+        tokens: [],
+      };
+      // analyzeメソッドを呼び出してオペランドを解析
+      const result = analyzer.analyze({
+        statements: [tempStatement],
+        errors: [],
+        symbols: context?.symbols || new Map(),
+        context: context || { symbols: new Map(), macros: new Map() },
+      });
+      if (result.statements.length > 0 && result.statements[0].instruction?.operands) {
+        operands = result.statements[0].instruction.operands;
+      }
+    }
+  }
 
   // シンボル参照を検索（内部→外部の順）
   const internalSymbolRefs: SymbolReference[] = [];
   const externalSymbolRefs: SymbolReference[] = [];
   const foundSymbolNames = new Set<string>();
   
+  // 継続行の場合でもオペランド解析情報を表示する
   if (hasOperandsText && !statement.isMacroCall && statement.operandsText) {
     const symbols = extractSymbolsFromOperands(statement.operandsText);
     for (const symbol of symbols) {
@@ -264,6 +298,7 @@ export const OperandPanel = ({ statement, context, fileManager, statements }: Op
       }
     }
   }
+  
 
   const renderOperand = (operand: Operand, index: number) => {
     return (
@@ -318,7 +353,15 @@ export const OperandPanel = ({ statement, context, fileManager, statements }: Op
         <h3>オペランド解析</h3>
       </div>
       <div className="operand-content">
-        {hasOperands && operands.map((op, idx) => renderOperand(op, idx))}
+        {/* 解析されたオペランドを表示（継続行でも通常の行でも同じスタイル） */}
+        {operands.length > 0 && operands.map((op, idx) => renderOperand(op, idx))}
+        {/* 解析されたオペランドがない場合のみ、オペランドテキストを表示 */}
+        {operands.length === 0 && hasOperandsText && statement.operandsText && (
+          <div className="operand-text-section">
+            <label>オペランド:</label>
+            <code className="operand-text">{statement.operandsText.trim()}</code>
+          </div>
+        )}
         {(internalSymbolRefs.length > 0 || externalSymbolRefs.length > 0) && (
           <>
             {internalSymbolRefs.length > 0 && (

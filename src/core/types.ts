@@ -43,6 +43,9 @@ export type AsmStatement = {
   expandedFrom?: string;      // 展開元のマクロ名（非推奨: 展開行を表示しないため）
   isMacroCall?: boolean;      // マクロ呼び出し行かどうか
   macroName?: string;         // 呼び出されたマクロ名
+  isContinuation?: boolean;   // この行が継続行かどうか（カラム72に+などがある場合）
+  continuationOf?: number;    // この行がどの行の継続か（行番号）
+  continuationCount?: number; // 継続行が何行続いているか（最初の行から数えた継続行の数、最初の行は0）
   // 将来の拡張用フィールド
   instruction?: {
     mnemonic: string;

@@ -59,6 +59,22 @@ export const DetailPanel = ({ statement }: DetailPanelProps) => {
             </span>
           </div>
         )}
+        {(statement.isContinuation === true || (statement.continuationCount !== undefined && statement.continuationCount > 0)) && (
+          <div className="detail-section">
+            <label>継続行:</label>
+            <span className="continuation-value">
+              {statement.isContinuation ? (
+                <span title={`この行は継続行です（行${statement.continuationOf || '?'}の続き）`}>
+                  ✓ 継続行（行{statement.continuationOf || '?'}の続き）
+                </span>
+              ) : statement.continuationCount !== undefined && statement.continuationCount > 0 ? (
+                <span title={`この行は${statement.continuationCount}行の継続行を持っています`}>
+                  ✓ 継続行あり（{statement.continuationCount}行続く）
+                </span>
+              ) : null}
+            </span>
+          </div>
+        )}
         {statement.opcode && statement.opcode.toUpperCase() === "COPY" && statement.operandsText && (
           <div className="detail-section">
             <label>COPY文（依存ファイル）:</label>

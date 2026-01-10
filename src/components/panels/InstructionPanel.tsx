@@ -7,7 +7,40 @@ interface InstructionPanelProps {
 }
 
 export const InstructionPanel = ({ statement, context }: InstructionPanelProps) => {
-  if (!statement || !statement.opcode) {
+  // 継続行の場合、継続元の行のオペコード情報を表示する必要がある
+  // しかし、現在の実装では継続元の行の情報を直接取得できないため、
+  // 継続行の場合は継続元の行を探す必要がある
+  // ただし、今回は継続行の場合でも何も表示しない（将来的に拡張可能）
+  
+  if (!statement) {
+    return (
+      <div className="instruction-panel">
+        <div className="panel-header">
+          <h3>命令情報</h3>
+        </div>
+        <p className="empty-state">命令が含まれる行を選択してください</p>
+      </div>
+    );
+  }
+  
+  // 継続行の場合
+  if (statement.isContinuation && statement.continuationOf) {
+    return (
+      <div className="instruction-panel">
+        <div className="panel-header">
+          <h3>命令情報</h3>
+        </div>
+        <div className="instruction-content">
+          <p className="instruction-note">
+            この行は継続行です。命令情報は行{statement.continuationOf}を参照してください。
+          </p>
+        </div>
+      </div>
+    );
+  }
+  
+  // オペコードがない場合（継続行ではないが、オペコードがない行）
+  if (!statement.opcode) {
     return (
       <div className="instruction-panel">
         <div className="panel-header">
