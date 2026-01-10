@@ -1,0 +1,486 @@
+/* src/styles/layout.css */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  background: #2d2d30;
+  color: #cccccc;
+  border-bottom: 1px solid #3e3e42;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.app-info {
+  display: flex;
+  gap: 15px;
+  font-size: 12px;
+}
+
+.app-info .error-count {
+  color: #f48771;
+}
+
+.error-list {
+  margin-top: 8px;
+  padding: 8px;
+  background: rgba(244, 135, 113, 0.1);
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.error-item {
+  color: #f48771;
+  margin: 2px 0;
+}
+
+.layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.left-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #3e3e42;
+  overflow: hidden;
+  background: #1e1e1e;
+}
+
+.right-pane {
+  width: 800px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #252526;
+  border-left: 1px solid #3e3e42;
+}
+
+.editor-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.editor-pane {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 15px;
+  background: #2d2d30;
+  border-bottom: 1px solid #3e3e42;
+  font-size: 12px;
+  color: #cccccc;
+}
+
+.editor-title {
+  font-weight: 500;
+}
+
+.editor-info {
+  color: #858585;
+}
+
+.editor {
+  flex: 1;
+  width: 100%;
+  padding: 15px;
+  border: none;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  resize: none;
+  outline: none;
+}
+
+.editor:focus {
+  outline: none;
+}
+
+.panels-section {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.panels-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid #3e3e42;
+}
+
+.right-panels {
+  width: 400px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.empty-message {
+  padding: 40px 20px;
+  text-align: center;
+  color: #858585;
+}
+
+.empty-message p {
+  margin: 8px 0;
+}
+
+/* パネル共通スタイル */
+.detail-panel,
+.instruction-panel,
+.operand-panel,
+.label-panel {
+  padding: 15px;
+  border-bottom: 1px solid #3e3e42;
+  background: #252526;
+}
+
+.detail-panel h3,
+.instruction-panel h3,
+.operand-panel h3,
+.label-panel h3 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #cccccc;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #3e3e42;
+}
+
+.empty-state {
+  color: #858585;
+  font-size: 12px;
+  font-style: italic;
+  margin: 10px 0;
+}
+
+.detail-content,
+.instruction-content,
+.operand-content,
+.label-content {
+  font-size: 13px;
+}
+
+.detail-section {
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-section label {
+  font-size: 11px;
+  color: #858585;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.detail-section span {
+  color: #cccccc;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+.label-value {
+  color: #4ec9b0;
+}
+
+.opcode-value {
+  color: #569cd6;
+  font-weight: 600;
+}
+
+.operands-value {
+  color: #9cdcfe;
+}
+
+.comment-value {
+  color: #6a9955;
+  font-style: italic;
+}
+
+.operands-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.operand-item {
+  padding: 8px;
+  background: #1e1e1e;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.operand-type {
+  color: #c586c0;
+  font-weight: 500;
+}
+
+.operand-value {
+  color: #9cdcfe;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+.operand-detail {
+  color: #858585;
+  font-size: 11px;
+}
+
+.instruction-section {
+  margin-bottom: 12px;
+}
+
+.instruction-section label {
+  display: block;
+  font-size: 11px;
+  color: #858585;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.mnemonic {
+  color: #569cd6;
+  font-weight: 600;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+.format {
+  color: #4ec9b0;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+.addressing-mode {
+  color: #c586c0;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+.instruction-note {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #3e3e42;
+}
+
+.instruction-note small {
+  color: #858585;
+  font-style: italic;
+}
+
+.operand-detail {
+  margin-bottom: 12px;
+  padding: 10px;
+  background: #1e1e1e;
+  border-radius: 4px;
+}
+
+.operand-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #3e3e42;
+}
+
+.operand-index {
+  color: #858585;
+  font-size: 11px;
+}
+
+.operand-type-badge {
+  background: #007acc;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.operand-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.operand-value,
+.operand-property {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.operand-value label,
+.operand-property label {
+  font-size: 10px;
+  color: #858585;
+  text-transform: uppercase;
+}
+
+.operand-value code,
+.operand-property code {
+  color: #9cdcfe;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 12px;
+  background: transparent;
+  padding: 0;
+}
+
+.symbol-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.symbol-item {
+  padding: 8px;
+  background: #1e1e1e;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 8px;
+  align-items: center;
+}
+
+.symbol-item:hover {
+  background: #2d2d30;
+}
+
+.symbol-item.selected {
+  background: #094771;
+  border-left: 3px solid #007acc;
+}
+
+.symbol-name {
+  color: #4ec9b0;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-weight: 500;
+}
+
+.symbol-type {
+  color: #858585;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.symbol-value {
+  color: #b5cea8;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 11px;
+}
+
+.symbol-line {
+  color: #858585;
+  font-size: 10px;
+  grid-column: 1 / -1;
+}
+
+/* ライトモード対応 */
+@media (prefers-color-scheme: light) {
+  .app-header {
+    background: #f6f8fa;
+    color: #24292e;
+    border-bottom: 1px solid #e1e4e8;
+  }
+
+  .left-pane,
+  .right-pane {
+    background: #ffffff;
+    border-color: #e1e4e8;
+  }
+
+  .editor-header {
+    background: #f6f8fa;
+    border-bottom: 1px solid #e1e4e8;
+    color: #24292e;
+  }
+
+  .editor {
+    background: #ffffff;
+    color: #24292e;
+  }
+
+  .panels-container {
+    border-right: 1px solid #e1e4e8;
+  }
+
+  .detail-panel,
+  .instruction-panel,
+  .operand-panel,
+  .label-panel {
+    background: #f6f8fa;
+    border-bottom: 1px solid #e1e4e8;
+  }
+
+  .detail-panel h3,
+  .instruction-panel h3,
+  .operand-panel h3,
+  .label-panel h3 {
+    color: #24292e;
+    border-bottom: 1px solid #e1e4e8;
+  }
+
+  .detail-section label {
+    color: #586069;
+  }
+
+  .detail-section span {
+    color: #24292e;
+  }
+
+  .operand-item,
+  .operand-detail,
+  .symbol-item {
+    background: #ffffff;
+    border: 1px solid #e1e4e8;
+  }
+
+  .symbol-item:hover {
+    background: #f6f8fa;
+  }
+
+  .symbol-item.selected {
+    background: #c8e1ff;
+    border-left: 3px solid #0366d6;
+  }
+
+  .operand-header {
+    border-bottom: 1px solid #e1e4e8;
+  }
+
+  .instruction-note {
+    border-top: 1px solid #e1e4e8;
+  }
+}
