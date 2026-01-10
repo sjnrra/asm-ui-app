@@ -70,25 +70,44 @@ export const OPCODE_DATABASE: Map<string, OpcodeInfo> = new Map([
   ["L", { mnemonic: "L", format: "RX", description: "メモリロード命令。メモリ（ベース・ディスプレースメント）から32ビットのフルワードを読み込み、第1オペランドのレジスタに格納します。", operands: { count: 2, types: ["register", "base-displacement"] } }],
   ["LA", { mnemonic: "LA", format: "RX", description: "アドレスロード命令。メモリアドレス（ベース・ディスプレースメント）を計算して、そのアドレス値自体を第1オペランドのレジスタに格納します。メモリの内容ではなく、アドレスをロードする点がL命令と異なります。", operands: { count: 2, types: ["register", "base-displacement"] } }],
   ["LH", { mnemonic: "LH", format: "RX", description: "ハーフワードロード命令。メモリから16ビットのハーフワードを読み込み、符号拡張して32ビットにして第1オペランドのレジスタに格納します。", operands: { count: 2, types: ["register", "base-displacement"] } }],
+  ["LLH", { mnemonic: "LLH", format: "RX", description: "ロード論理ハーフワード命令。メモリから16ビットのハーフワードを読み込み、符号拡張せずに32ビットのレジスタに格納します（上位16ビットは0で埋められます）。", operands: { count: 2, types: ["register", "base-displacement"] } }],
   ["LM", { mnemonic: "LM", format: "RS", description: "複数レジスタロード命令。第1オペランドから第2オペランドまでの連続したレジスタに、メモリから順次値を読み込みます。レジスタの保存・復元処理でよく使用されます。", operands: { count: 3, types: ["register", "register", "base-displacement"] } }],
+  ["LTR", { mnemonic: "LTR", format: "RR", description: "ロードしてテスト命令。第2オペランドのレジスタの値を第1オペランドのレジスタにコピーし、同時に条件コードを設定します。ゼロ、正、負に応じてCCが設定されます。", operands: { count: 2, types: ["register", "register"] } }],
+  ["LNR", { mnemonic: "LNR", format: "RR", description: "ロード符号反転命令。第2オペランドのレジスタの値の符号を反転して第1オペランドのレジスタに格納します。", operands: { count: 2, types: ["register", "register"] } }],
+  ["LCR", { mnemonic: "LCR", format: "RR", description: "ロード補数命令。第2オペランドのレジスタの値の2の補数を計算して第1オペランドのレジスタに格納します。", operands: { count: 2, types: ["register", "register"] } }],
   
   ["ST", { mnemonic: "ST", format: "RX", description: "メモリストア命令。第1オペランドのレジスタの32ビット値をメモリ（ベース・ディスプレースメント）に書き込みます。", operands: { count: 2, types: ["register", "base-displacement"] } }],
   ["STH", { mnemonic: "STH", format: "RX", description: "ハーフワードストア命令。第1オペランドのレジスタの下位16ビットをメモリに書き込みます。", operands: { count: 2, types: ["register", "base-displacement"] } }],
   ["STM", { mnemonic: "STM", format: "RS", description: "複数レジスタストア命令。第1オペランドから第2オペランドまでの連続したレジスタの値を、メモリに順次書き込みます。レジスタの保存処理でよく使用されます。", operands: { count: 3, types: ["register", "register", "base-displacement"] } }],
   
   // 比較命令
-  ["CR", { mnemonic: "CR", format: "RR", description: "レジスタ比較命令。第1オペランドのレジスタの値と第2オペランドのレジスタの値を符号付き整数として比較し、条件コードを設定します。結果に応じてCC（条件コード）が0（等しい）、1（第1が大きい）、2（第1が小さい）に設定されます。", operands: { count: 2, types: ["register", "register"] } }],
+  ["CR", { mnemonic: "CR", format: "RR", description: "レジスタ比較命令。第1オペランドのレジスタの値と第2オペランドのレジスタの値を符号付き整数として比較し、条件コードを設定します。結果に応じてCC（条件コード）が0（等しい）、2（第1が大きい）、4（第1が小さい）に設定されます。", operands: { count: 2, types: ["register", "register"] } }],
   ["C", { mnemonic: "C", format: "RX", description: "メモリ比較命令。第1オペランドのレジスタの値とメモリ（ベース・ディスプレースメント）の値を符号付き整数として比較し、条件コードを設定します。", operands: { count: 2, types: ["register", "base-displacement"] } }],
   ["CH", { mnemonic: "CH", format: "RX", description: "ハーフワード比較命令。第1オペランドのレジスタの下位16ビットとメモリのハーフワードを符号付き整数として比較し、条件コードを設定します。", operands: { count: 2, types: ["register", "base-displacement"] } }],
+  ["CLR", { mnemonic: "CLR", format: "RR", description: "レジスタ論理比較命令。第1オペランドのレジスタの値と第2オペランドのレジスタの値を符号なし整数として比較し、条件コードを設定します。", operands: { count: 2, types: ["register", "register"] } }],
+  ["CL", { mnemonic: "CL", format: "RX", description: "メモリ論理比較命令。第1オペランドのレジスタの値とメモリ（ベース・ディスプレースメント）の値を符号なし整数として比較し、条件コードを設定します。", operands: { count: 2, types: ["register", "base-displacement"] } }],
   ["CLI", { mnemonic: "CLI", format: "SI", description: "即値論理比較命令。メモリの1バイトと即値（8ビット符号なし整数）を符号なしとして比較し、条件コードを設定します。文字列比較やフラグチェックに使用されます。", operands: { count: 2, types: ["base-displacement", "immediate"] } }],
+  ["CLC", { mnemonic: "CLC", format: "SS", description: "文字列比較命令。メモリからメモリへ文字列を比較します。第1オペランドと第2オペランドのアドレスから指定された長さのデータを比較し、条件コードを設定します。", operands: { count: 2, types: ["base-displacement", "base-displacement"] } }],
   
   // 分岐命令
   ["B", { mnemonic: "B", format: "RX", description: "無条件分岐命令。指定されたアドレス（ベース・ディスプレースメント）に無条件で分岐します。サブルーチン呼び出しやループの終了処理で使用されます。", operands: { count: 1, types: ["base-displacement"] } }],
   ["BR", { mnemonic: "BR", format: "RR", description: "レジスタ分岐命令。指定されたレジスタに格納されているアドレスに無条件で分岐します。動的な分岐やサブルーチンからの戻りで使用されます。", operands: { count: 1, types: ["register"] } }],
   ["BC", { mnemonic: "BC", format: "RX", description: "条件分岐命令。第1オペランドで指定された条件（マスク）が条件コードと一致する場合、第2オペランドのアドレスに分岐します。条件マスクは1（等しい）、2（大きい）、4（小さい）などを組み合わせて指定します。", operands: { count: 2, types: ["immediate", "base-displacement"] } }],
   ["BCR", { mnemonic: "BCR", format: "RR", description: "レジスタ条件分岐命令。第1オペランドで指定された条件が条件コードと一致する場合、第2オペランドのレジスタに格納されているアドレスに分岐します。", operands: { count: 2, types: ["immediate", "register"] } }],
-  ["BNH", { mnemonic: "BNH", format: "RX", description: "分岐（以下）命令。条件コードが0（等しい）または2（小さい）の場合に分岐します。BC 2,addr または BC 6,addr の簡略形です。", operands: { count: 1, types: ["base-displacement"] } }],
+  ["BE", { mnemonic: "BE", format: "RX", description: "等しい場合に分岐命令（Branch on Equal）。条件コードが0（等しい）の場合に分岐します。BC 8,addr の簡略形です。比較命令（CR, Cなど）の結果が等しい場合に使用されます。", operands: { count: 1, types: ["base-displacement"] } }],
+  ["BNE", { mnemonic: "BNE", format: "RX", description: "等しくない場合に分岐命令（Branch on Not Equal）。条件コードが0以外（等しくない）の場合に分岐します。BC 7,addr の簡略形です。比較命令の結果が等しくない場合に使用されます。", operands: { count: 1, types: ["base-displacement"] } }],
+  ["BH", { mnemonic: "BH", format: "RX", description: "大きい場合に分岐命令（Branch on High）。条件コードが2（大きい）の場合に分岐します。BC 2,addr の簡略形です。符号付き整数の比較で第1オペランドが第2オペランドより大きい場合に使用されます。", operands: { count: 1, types: ["base-displacement"] } }],
+  ["BL", { mnemonic: "BL", format: "RX", description: "小さい場合に分岐命令（Branch on Low）。条件コードが4（小さい）の場合に分岐します。BC 4,addr の簡略形です。符号付き整数の比較で第1オペランドが第2オペランドより小さい場合に使用されます。", operands: { count: 1, types: ["base-displacement"] } }],
+  ["BZ", { mnemonic: "BZ", format: "RX", description: "ゼロの場合に分岐命令（Branch on Zero）。条件コードが0（ゼロ）の場合に分岐します。BC 8,addr の簡略形で、BEと同等です。", operands: { count: 1, types: ["base-displacement"] } }],
+  ["BNZ", { mnemonic: "BNZ", format: "RX", description: "ゼロでない場合に分岐命令（Branch on Not Zero）。条件コードが0以外（ゼロでない）の場合に分岐します。BC 7,addr の簡略形で、BNEと同等です。", operands: { count: 1, types: ["base-displacement"] } }],
+  ["BP", { mnemonic: "BP", format: "RX", description: "正の場合に分岐命令（Branch on Plus）。条件コードが2（正の値）の場合に分岐します。BC 2,addr の簡略形です。", operands: { count: 1, types: ["base-displacement"] } }],
+  ["BM", { mnemonic: "BM", format: "RX", description: "負の場合に分岐命令（Branch on Minus）。条件コードが4（負の値）の場合に分岐します。BC 4,addr の簡略形です。", operands: { count: 1, types: ["base-displacement"] } }],
+  ["BNP", { mnemonic: "BNP", format: "RX", description: "正でない場合に分岐命令（Branch on Not Plus）。条件コードが2以外（正でない、すなわち0以下）の場合に分岐します。BC 13,addr の簡略形です。", operands: { count: 1, types: ["base-displacement"] } }],
+  ["BNM", { mnemonic: "BNM", format: "RX", description: "負でない場合に分岐命令（Branch on Not Minus）。条件コードが4以外（負でない、すなわち0以上）の場合に分岐します。BC 11,addr の簡略形です。", operands: { count: 1, types: ["base-displacement"] } }],
+  ["BNH", { mnemonic: "BNH", format: "RX", description: "大きくない場合に分岐命令（Branch on Not High、以下）。条件コードが0（等しい）または4（小さい）の場合に分岐します。BC 13,addr の簡略形です。符号付き整数の比較で第1オペランドが第2オペランド以下の場合に使用されます。", operands: { count: 1, types: ["base-displacement"] } }],
+  ["BNL", { mnemonic: "BNL", format: "RX", description: "小さくない場合に分岐命令（Branch on Not Low、以上）。条件コードが0（等しい）または2（大きい）の場合に分岐します。BC 11,addr の簡略形です。符号付き整数の比較で第1オペランドが第2オペランド以上の場合に使用されます。", operands: { count: 1, types: ["base-displacement"] } }],
   ["BAL", { mnemonic: "BAL", format: "RX", description: "分岐してリンク命令。指定されたアドレスに分岐し、現在のアドレス+4を第1オペランドのレジスタに保存します。サブルーチン呼び出しで使用されます。", operands: { count: 2, types: ["register", "base-displacement"] } }],
+  ["BALR", { mnemonic: "BALR", format: "RR", description: "レジスタ分岐してリンク命令。第2オペランドのレジスタに格納されているアドレスに分岐し、現在のアドレス+4を第1オペランドのレジスタに保存します。サブルーチン呼び出しで使用されます。", operands: { count: 2, types: ["register", "register"] } }],
   
   // 論理演算命令
   ["OR", { mnemonic: "OR", format: "RR", description: "論理OR演算命令（レジスタ）。第1オペランドのレジスタの値と第2オペランドのレジスタの値のビットごとの論理OR演算を行い、結果を第1オペランドのレジスタに格納します。", operands: { count: 2, types: ["register", "register"] } }],
@@ -104,6 +123,15 @@ export const OPCODE_DATABASE: Map<string, OpcodeInfo> = new Map([
   
   // その他の命令
   ["MVI", { mnemonic: "MVI", format: "SI", description: "メモリ即値移動命令。即値（8ビット）をメモリの1バイトに書き込みます。文字列の初期化やフラグの設定に使用されます。", operands: { count: 2, types: ["base-displacement", "immediate"] } }],
+  ["MVC", { mnemonic: "MVC", format: "SS", description: "文字列移動命令。メモリからメモリへ文字列を移動します。第1オペランドのアドレスに第2オペランドのアドレスから指定された長さのデータをコピーします。", operands: { count: 2, types: ["base-displacement", "base-displacement"] } }],
+  ["MVCL", { mnemonic: "MVCL", format: "RRE", description: "ロング文字列移動命令。レジスタペアで指定された長さのデータを移動します。最大4GBのデータ移動が可能です。", operands: { count: 2, types: ["register", "register"] } }],
+  ["CLCL", { mnemonic: "CLCL", format: "RRE", description: "ロング文字列比較命令。レジスタペアで指定された長さのデータを比較します。最大4GBのデータ比較が可能です。", operands: { count: 2, types: ["register", "register"] } }],
+  ["IC", { mnemonic: "IC", format: "RX", description: "文字挿入命令。メモリから1バイトを読み込み、第1オペランドのレジスタの下位8ビットに挿入します。上位24ビットは変更されません。", operands: { count: 2, types: ["register", "base-displacement"] } }],
+  ["STC", { mnemonic: "STC", format: "RX", description: "文字ストア命令。第1オペランドのレジスタの下位8ビットをメモリの1バイトに書き込みます。", operands: { count: 2, types: ["register", "base-displacement"] } }],
+  ["ICM", { mnemonic: "ICM", format: "RS", description: "文字挿入マスク命令。メモリから1バイトを読み込み、第1オペランドのレジスタの指定された位置に挿入します。マスクビットで挿入位置を指定します。", operands: { count: 3, types: ["register", "register", "base-displacement"] } }],
+  ["STCM", { mnemonic: "STCM", format: "RS", description: "文字ストアマスク命令。第1オペランドのレジスタの指定された位置から1バイトを抽出し、メモリに書き込みます。マスクビットで抽出位置を指定します。", operands: { count: 3, types: ["register", "register", "base-displacement"] } }],
+  ["NOP", { mnemonic: "NOP", format: "RR", description: "無操作命令。何も処理を行いません。デバッグやタイミング調整に使用されます。", operands: { count: 0, types: [] } }],
+  ["NOPR", { mnemonic: "NOPR", format: "RR", description: "レジスタ無操作命令。何も処理を行いません。BCR 0,0 の簡略形です。", operands: { count: 0, types: [] } }],
   
   // シフト命令
   ["SLL", { mnemonic: "SLL", format: "RS", description: "単一論理左シフト命令。第1オペランドのレジスタの32ビット値を、第3オペランドで指定されたビット数だけ左に論理シフトします。右側には0が詰められます。乗算の代替やビット操作に使用されます。", operands: { count: 3, types: ["register", "register", "base-displacement"] } }],

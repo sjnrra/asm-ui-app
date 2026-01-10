@@ -176,28 +176,39 @@ export class AssemblyAnalyzer {
         value,
         type: "equ",
         definedAt: statement.lineNumber,
+        sourceFile: statement.sourceFile,
       });
     }
     // DC命令: 定数の定義
     else if (opcode === "DC") {
       const valueText = statement.operandsText || "";
-      // DC命令のオペランドを簡易的に保持（将来的に詳細解析可能）
+      // DC命令のオペランドからデータ型を抽出
+      const { dataType, length, parsedValue } = this.parseDCType(valueText);
+      
       symbols.set(statement.label, {
         name: statement.label,
-        value: valueText,
+        value: parsedValue !== undefined ? parsedValue : valueText,
         type: "constant",
         definedAt: statement.lineNumber,
+        sourceFile: statement.sourceFile,
+        dataType: dataType,
+        length: length,
       });
     }
     // DS命令: ストレージの定義
     else if (opcode === "DS") {
       const valueText = statement.operandsText || "";
-      // DS命令のオペランドを簡易的に保持（将来的に詳細解析可能）
+      // DS命令のオペランドからデータ型を抽出
+      const { dataType, length } = this.parseDSType(valueText);
+      
       symbols.set(statement.label, {
         name: statement.label,
         value: valueText,
         type: "variable",
         definedAt: statement.lineNumber,
+        sourceFile: statement.sourceFile,
+        dataType: dataType,
+        length: length,
       });
     }
     // その他のラベル（CSECT、ENTRY POINTなど）
@@ -208,6 +219,7 @@ export class AssemblyAnalyzer {
         value: statement.lineNumber,
         type: "label",
         definedAt: statement.lineNumber,
+        sourceFile: statement.sourceFile,
       });
     }
   }
@@ -231,51 +243,64 @@ export class AssemblyAnalyzer {
       const trimmedPart = part.trim();
       if (!trimmedPart || trimmedPart === ",") continue;
 
-      // レジスタ
-      if (/^R\d+$|^GR\d+$/i.test(trimmed)) {
+      // レジスタ（R0-R15, GR0-GR15など）
+      if (/^R\d+$|^GR\d+$/i.test(trimmedPart)) {
         operands.push({
           type: "register",
-          value: trimmed,
-          register: trimmed.toUpperCase(),
+          value: trimmedPart,
+          register: trimmedPart.toUpperCase(),
         });
       }
-      // ベース-ディスプレースメント形式（例: 4(R3), 1000(R5)）
-      else if (/^\d+\(R\d+\)$/i.test(trimmed)) {
-        const match = trimmed.match(/^(\d+)\(R(\d+)\)$/i);
+      // ベース-ディスプレースメント形式（例: 4(R3), 1000(R5), WORKAREA(R4)）
+      else if (/^(\d+|[A-Z_][A-Z0-9_]*)?\(R\d+\)$/i.test(trimmedPart)) {
+        const match = trimmedPart.match(/^(\d+|[A-Z_][A-Z0-9_]*)?\(R(\d+)\)$/i);
         if (match) {
+          const displacement = match[1] ? (isNaN(Number(match[1])) ? undefined : parseInt(match[1], 10)) : 0;
+          const symbol = match[1] && isNaN(Number(match[1])) ? match[1] : undefined;
           operands.push({
             type: "base-displacement",
-            value: trimmed,
-            displacement: parseInt(match[1], 10),
+            value: trimmedPart,
+            displacement: displacement,
             baseRegister: `R${match[2]}`,
+            ...(symbol && { value: symbol }), // シンボルがある場合はvalueを上書き
           });
         }
       }
-      // インデックス付き（将来の拡張: 4(R3,R4)）
-      else if (/^\d+\(R\d+,R\d+\)$/i.test(trimmed)) {
-        const match = trimmed.match(/^(\d+)\(R(\d+),R(\d+)\)$/i);
+      // インデックス付き（例: 4(R3,R4), WORKAREA(R4,R5)）
+      else if (/^(\d+|[A-Z_][A-Z0-9_]*)?\(R\d+,R\d+\)$/i.test(trimmedPart)) {
+        const match = trimmedPart.match(/^(\d+|[A-Z_][A-Z0-9_]*)?\(R(\d+),R(\d+)\)$/i);
         if (match) {
+          const displacement = match[1] ? (isNaN(Number(match[1])) ? undefined : parseInt(match[1], 10)) : 0;
+          const symbol = match[1] && isNaN(Number(match[1])) ? match[1] : undefined;
           operands.push({
             type: "indexed",
-            value: trimmed,
-            displacement: parseInt(match[1], 10),
+            value: trimmedPart,
+            displacement: displacement,
             baseRegister: `R${match[2]}`,
             indexRegister: `R${match[3]}`,
+            ...(symbol && { value: symbol }), // シンボルがある場合はvalueを上書き
           });
         }
       }
-      // 即値（数値）
-      else if (/^-?\d+$|^[0-9A-F]+H$/i.test(trimmed)) {
+      // 即値（数値リテラル: 10進数、16進数）
+      else if (/^-?\d+$|^[0-9A-F]+H$/i.test(trimmedPart)) {
         operands.push({
           type: "immediate",
-          value: trimmed,
+          value: trimmedPart,
         });
       }
-      // メモリ参照（シンボル）
+      // リテラル（=F'...', =C'...', =X'...'など）
+      else if (/^=/.test(trimmedPart)) {
+        operands.push({
+          type: "immediate",
+          value: trimmedPart,
+        });
+      }
+      // メモリ参照（シンボル、ラベルなど）
       else {
         operands.push({
           type: "memory",
-          value: trimmed,
+          value: trimmedPart,
         });
       }
     }
@@ -365,6 +390,138 @@ export class AssemblyAnalyzer {
     }
 
     return parts;
+  }
+
+  /**
+   * DC命令のオペランドからデータ型を解析
+   * 例: "F'100'" -> { dataType: "F", length: 4, parsedValue: 100 }
+   * 例: "CL10'HELLO'" -> { dataType: "CL10", length: 10, parsedValue: "HELLO" }
+   */
+  private parseDCType(operandsText: string): { dataType: string; length?: number; parsedValue?: number | string } {
+    const trimmed = operandsText.trim();
+    
+    // データ型パターンをマッチング
+    // F'100' -> F, 100
+    const fPattern = /^F'(-?\d+)'$/i;
+    // H'100' -> H, 100
+    const hPattern = /^H'(-?\d+)'$/i;
+    // X'FF' -> X, FF
+    const xPattern = /^X'([0-9A-F]+)'$/i;
+    // C'HELLO' -> C, HELLO
+    const cPattern = /^C'(.*)'$/i;
+    // CL10'HELLO' -> CL10, HELLO
+    const clPattern = /^CL(\d+)'(.*)'$/i;
+    // D'123.45' -> D, 123.45
+    const dPattern = /^D'([0-9.+-]+)'$/i;
+    // A(label) -> A, label
+    const aPattern = /^A\(([A-Z0-9_]+)\)$/i;
+    // S(label) -> S, label
+    const sPattern = /^S\(([A-Z0-9_]+)\)$/i;
+    // Y(label) -> Y, label
+    const yPattern = /^Y\(([A-Z0-9_]+)\)$/i;
+    // V(label) -> V, label
+    const vPattern = /^V\(([A-Z0-9_]+)\)$/i;
+    // P'123.45' -> P, 123.45
+    const pPattern = /^P'([0-9.+-]+)'$/i;
+    // Z'123' -> Z, 123
+    const zPattern = /^Z(\d+)'([0-9]+)'$/i;
+    // E'1.23E+10' -> E, 1.23E+10
+    const ePattern = /^E'([0-9.E+-]+)'$/i;
+    
+    let match: RegExpMatchArray | null;
+    
+    if ((match = trimmed.match(fPattern))) {
+      return { dataType: "F", length: 4, parsedValue: parseInt(match[1], 10) };
+    } else if ((match = trimmed.match(hPattern))) {
+      return { dataType: "H", length: 2, parsedValue: parseInt(match[1], 10) };
+    } else if ((match = trimmed.match(xPattern))) {
+      return { dataType: "X", length: Math.ceil(match[1].length / 2), parsedValue: parseInt(match[1], 16) };
+    } else if ((match = trimmed.match(clPattern))) {
+      return { dataType: `CL${match[1]}`, length: parseInt(match[1], 10), parsedValue: match[2] };
+    } else if ((match = trimmed.match(cPattern))) {
+      return { dataType: "C", length: match[1].length, parsedValue: match[1] };
+    } else if ((match = trimmed.match(dPattern))) {
+      return { dataType: "D", length: 8, parsedValue: match[1] };
+    } else if ((match = trimmed.match(aPattern))) {
+      return { dataType: "A", length: 4, parsedValue: match[1] };
+    } else if ((match = trimmed.match(sPattern))) {
+      return { dataType: "S", length: 4, parsedValue: match[1] };
+    } else if ((match = trimmed.match(yPattern))) {
+      return { dataType: "Y", length: 2, parsedValue: match[1] };
+    } else if ((match = trimmed.match(vPattern))) {
+      return { dataType: "V", length: 4, parsedValue: match[1] };
+    } else if ((match = trimmed.match(pPattern))) {
+      return { dataType: "P", length: 8, parsedValue: match[1] };
+    } else if ((match = trimmed.match(zPattern))) {
+      return { dataType: `Z${match[1]}`, length: parseInt(match[1], 10), parsedValue: parseInt(match[2], 10) };
+    } else if ((match = trimmed.match(ePattern))) {
+      return { dataType: "E", length: 4, parsedValue: match[1] };
+    }
+    
+    // パターンに一致しない場合、デフォルト値を返す
+    return { dataType: trimmed };
+  }
+
+  /**
+   * DS命令のオペランドからデータ型を解析
+   * 例: "18F" -> { dataType: "F", length: 72 }
+   * 例: "CL80" -> { dataType: "CL80", length: 80 }
+   */
+  private parseDSType(operandsText: string): { dataType: string; length?: number } {
+    const trimmed = operandsText.trim();
+    
+    // データ型パターンをマッチング
+    // 18F -> 18, F
+    const repeatPattern = /^(\d+)([A-Z][A-Z0-9]*)$/i;
+    // F -> F
+    const singlePattern = /^([A-Z][A-Z0-9]*)$/i;
+    // CL80 -> CL80
+    const clPattern = /^CL(\d+)$/i;
+    
+    let match: RegExpMatchArray | null;
+    
+    if ((match = trimmed.match(repeatPattern))) {
+      const count = parseInt(match[1], 10);
+      const type = match[2].toUpperCase();
+      const typeLength = this.getDataTypeLength(type);
+      return { dataType: type, length: count * (typeLength || 0) };
+    } else if ((match = trimmed.match(clPattern))) {
+      return { dataType: `CL${match[1]}`, length: parseInt(match[1], 10) };
+    } else if ((match = trimmed.match(singlePattern))) {
+      const type = match[1].toUpperCase();
+      const typeLength = this.getDataTypeLength(type);
+      return { dataType: type, length: typeLength };
+    }
+    
+    return { dataType: trimmed };
+  }
+
+  /**
+   * データ型のバイト長を取得
+   */
+  private getDataTypeLength(type: string): number | undefined {
+    const typeMap: Record<string, number> = {
+      F: 4,    // Fullword
+      H: 2,    // Halfword
+      D: 8,    // Doubleword
+      A: 4,    // Address
+      S: 4,    // Address (short)
+      Y: 2,    // Address (short)
+      V: 4,    // Address (variable)
+      X: 1,    // Hexadecimal (default 1 byte)
+      C: 1,    // Character (default 1 byte)
+      P: 8,    // Packed decimal
+      Z: 1,    // Zoned decimal (default 1 byte)
+      E: 4,    // Floating point (single precision)
+    };
+    
+    // CL10形式の場合
+    if (/^CL\d+$/i.test(type)) {
+      const match = type.match(/^CL(\d+)$/i);
+      return match ? parseInt(match[1], 10) : undefined;
+    }
+    
+    return typeMap[type.toUpperCase()];
   }
 
   /**

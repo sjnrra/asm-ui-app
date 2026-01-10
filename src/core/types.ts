@@ -88,6 +88,9 @@ export type SymbolDefinition = {
   type: "label" | "variable" | "constant" | "equ";
   definedAt: number;
   scope?: string;
+  sourceFile?: string;  // シンボルが定義されたソースファイル
+  dataType?: string;    // データ型（F, H, X, C, CL10, DS F など）
+  length?: number;      // データ長（バイト数）
 };
 
 export type MacroDefinition = {

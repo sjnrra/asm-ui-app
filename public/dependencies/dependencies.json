@@ -2,6 +2,7 @@
     "files": [
         "REGS.INC",
         "CONSTANTS.INC",
+        "MAINPROG.ASM",
         "MACROS.MAC",
         "REGS.INC",
         "SAVEMAC.MAC"

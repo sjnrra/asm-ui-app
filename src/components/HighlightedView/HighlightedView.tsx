@@ -98,56 +98,115 @@ export const HighlightedView = ({
                 <span className="line-number-text">{stmt.lineNumber.toString().padStart(4, " ")}</span>
               </span>
               <span className="line-content">
-              {stmt.tokens.length > 0 ? (() => {
-                // トークンをcolumnStartの順にソート
-                const sortedTokens = [...stmt.tokens]
-                  .filter((t) => t.columnStart < 80) // 80カラム未満から始まるトークンのみ表示
+              {(() => {
+                // rawTextを直接使用して、元のテキスト内容を完全に保持
+                const rawText = stmt.rawText.substring(0, 80); // 80カラムまで
+                if (stmt.tokens.length === 0) {
+                  return <span className="tok-whitespace">{rawText}</span>;
+                }
+                
+                // 空白トークン以外のトークンを取得してソート
+                const nonWhitespaceTokens = stmt.tokens
+                  .filter((t) => t.type !== TokenType.WHITESPACE && t.columnStart < 80 && t.text.trim().length > 0)
                   .sort((a, b) => a.columnStart - b.columnStart);
                 
+                // rawTextを順番に処理し、トークンを順番に配置
                 const elements: (ReactElement | null)[] = [];
-                let lastEnd = 0;
+                let currentPos = 0;
+                let searchStart = 0; // rawText内での検索開始位置
                 
-                for (let i = 0; i < sortedTokens.length; i++) {
-                  const token = sortedTokens[i];
+                for (let i = 0; i < nonWhitespaceTokens.length; i++) {
+                  const token = nonWhitespaceTokens[i];
+                  const tokenText = token.text.trim();
                   
-                  // 前のトークンとの間に空白がある場合は空白を挿入
-                  if (token.columnStart > lastEnd) {
-                    const gap = token.columnStart - lastEnd;
+                  // 現在の位置からトークンのテキストをrawText内で探す
+                  const tokenPosInRaw = rawText.indexOf(tokenText, searchStart);
+                  
+                  if (tokenPosInRaw >= 0 && tokenPosInRaw < 80) {
+                    // トークンの前に空白がある場合、rawTextから直接取得
+                    if (tokenPosInRaw > currentPos) {
+                      const whitespaceText = rawText.substring(currentPos, tokenPosInRaw);
+                      if (whitespaceText.length > 0) {
+                        elements.push(
+                          <span
+                            key={`whitespace-${currentPos}`}
+                            className="tok-whitespace"
+                          >
+                            {whitespaceText}
+                          </span>
+                        );
+                      }
+                    }
+                    
+                    // トークンを表示（元のrawTextの該当部分を使用して正確なテキストを保持）
+                    const actualTokenText = rawText.substring(tokenPosInRaw, tokenPosInRaw + tokenText.length);
                     elements.push(
                       <span
-                        key={`gap-${i}`}
-                        className="tok-whitespace"
-                      >
-                        {" ".repeat(gap)}
-                      </span>
-                    );
-                  }
-                  
-                  // 80カラムを超える部分を切り取る
-                  let text = token.text;
-                  if (token.columnEnd > 80) {
-                    const maxLength = 80 - token.columnStart;
-                    text = text.substring(0, Math.max(0, maxLength));
-                  }
-                  
-                  if (text) {
-                    elements.push(
-                      <span
-                        key={i}
+                        key={`token-${tokenPosInRaw}-${i}`}
                         className={getTokenClassName(token.type)}
                         title={token.type}
                       >
-                        {text}
+                        {actualTokenText}
                       </span>
                     );
-                    lastEnd = Math.min(token.columnEnd, 80);
+                    
+                    currentPos = tokenPosInRaw + tokenText.length;
+                    searchStart = currentPos;
+                  } else {
+                    // トークンが見つからない場合、位置情報を使用（フォールバック）
+                    const tokenStart = Math.max(token.columnStart, currentPos);
+                    const tokenEnd = Math.min(token.columnEnd, rawText.length, 80);
+                    
+                    if (tokenStart > currentPos) {
+                      const whitespaceText = rawText.substring(currentPos, tokenStart);
+                      if (whitespaceText.length > 0) {
+                        elements.push(
+                          <span
+                            key={`whitespace-${currentPos}`}
+                            className="tok-whitespace"
+                          >
+                            {whitespaceText}
+                          </span>
+                        );
+                      }
+                    }
+                    
+                    if (tokenStart < tokenEnd) {
+                      const tokenTextFromRaw = rawText.substring(tokenStart, tokenEnd);
+                      if (tokenTextFromRaw.trim().length > 0) {
+                        elements.push(
+                          <span
+                            key={`token-${tokenStart}-${i}`}
+                            className={getTokenClassName(token.type)}
+                            title={token.type}
+                          >
+                            {tokenTextFromRaw}
+                          </span>
+                        );
+                        currentPos = tokenEnd;
+                        searchStart = currentPos;
+                      }
+                    }
                   }
                 }
                 
-                return elements;
-              })() : (
-                <span className="tok-whitespace">{stmt.rawText.substring(0, 80)}</span>
-              )}
+                // 最後のトークンの後に残りのテキストがある場合
+                if (currentPos < rawText.length && currentPos < 80) {
+                  const remainingText = rawText.substring(currentPos, 80);
+                  if (remainingText.length > 0) {
+                    elements.push(
+                      <span
+                        key={`remaining-${currentPos}`}
+                        className="tok-whitespace"
+                      >
+                        {remainingText}
+                      </span>
+                    );
+                  }
+                }
+                
+                return elements.length > 0 ? elements : <span className="tok-whitespace">{rawText}</span>;
+              })()}
             </span>
           </div>
           );

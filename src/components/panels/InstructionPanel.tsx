@@ -19,7 +19,22 @@ export const InstructionPanel = ({ statement, context }: InstructionPanelProps) 
   }
 
   const instruction = statement.instruction;
-  const macroDef = context?.macros?.get(statement.opcode.toUpperCase());
+  
+  // マクロ定義をチェック（マクロ呼び出しの場合はmacroNameまたはopcodeから取得）
+  let macroDef = undefined;
+  if (statement.isMacroCall) {
+    // マクロ呼び出しの場合、まずmacroNameから取得を試みる
+    if (statement.macroName) {
+      macroDef = context?.macros?.get(statement.macroName.toUpperCase());
+    }
+    // macroNameから取得できなかった場合、opcodeから取得を試みる
+    if (!macroDef && statement.opcode) {
+      macroDef = context?.macros?.get(statement.opcode.toUpperCase());
+    }
+  } else if (statement.opcode) {
+    // 通常のステートメントの場合、opcodeから取得
+    macroDef = context?.macros?.get(statement.opcode.toUpperCase());
+  }
 
   return (
     <div className="instruction-panel">
@@ -35,39 +50,116 @@ export const InstructionPanel = ({ statement, context }: InstructionPanelProps) 
           </span>
         </div>
         {macroDef ? (
-          <div className="instruction-section">
-            <label>マクロ定義:</label>
-            <div className="macro-info">
-              <div className="macro-summary">
-                {macroDef.parameters.length > 0 ? (
-                  <span>パラメータ数: {macroDef.parameters.length} ({macroDef.parameters.map((p: string) => `&${p}`).join(", ")})</span>
-                ) : (
-                  <span>パラメータなし</span>
-                )}
-                {macroDef.sourceFile && (
-                  <span className="macro-source"> 📄 {macroDef.sourceFile}</span>
-                )}
+          <>
+            {statement.isMacroCall && statement.macroName && (
+              <div className="instruction-section">
+                <label>マクロ呼び出し:</label>
+                <span className="macro-call-value" title={`この行はマクロ "${statement.macroName}" を呼び出しています`}>
+                  ⚡ {statement.macroName}
+                </span>
               </div>
-              <div className="macro-body-preview">
-                <small>マクロ本体（{macroDef.bodyLines?.length || macroDef.body.length}行）:</small>
-                <div className="macro-preview-content">
-                  {(macroDef.bodyLines || macroDef.body.map((s) => s.rawText)).slice(0, 3).map((line: string, idx: number) => (
-                    <div key={idx} className="macro-preview-line">
-                      <code>{line.substring(0, 50).trimEnd()}</code>
-                    </div>
-                  ))}
-                  {(macroDef.bodyLines?.length || macroDef.body.length) > 3 && (
-                    <div className="macro-preview-more">
-                      <small>... 他 {(macroDef.bodyLines?.length || macroDef.body.length) - 3} 行</small>
-                    </div>
-                  )}
+            )}
+            {macroDef.sourceFile && (
+              <div className="instruction-section dependency-files-section">
+                <label>マクロ定義ファイル（依存ファイル）:</label>
+                <div className="dependency-files-list">
+                  <div className="dependency-file-item" title={`このマクロが定義されているファイル: ${macroDef.sourceFile}`}>
+                    📄 {macroDef.sourceFile}
+                  </div>
                 </div>
               </div>
-              <div className="macro-link">
-                <small>詳細は「詳細情報」パネルを参照してください</small>
+            )}
+            <div className="instruction-section macro-definition-section">
+              <label>マクロ定義:</label>
+              <div className="macro-definition-content">
+                <div className="macro-name">
+                  <strong>{macroDef.name}</strong>
+                  {macroDef.sourceFile && (
+                    <span className="macro-source-file" title={`マクロ定義元: ${macroDef.sourceFile}`}>
+                      📄 {macroDef.sourceFile}
+                    </span>
+                  )}
+                </div>
+                {macroDef.parameters.length > 0 && (
+                  <div className="macro-parameters">
+                    <label>パラメータ:</label>
+                    <div className="macro-params-list">
+                      {macroDef.parameters.map((param, idx) => (
+                        <span key={idx} className="macro-param">
+                          &{param}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div className="macro-body">
+                  <label>マクロ本体（定義）:</label>
+                  <div className="macro-body-content">
+                    {macroDef.bodyLines && macroDef.bodyLines.length > 0 ? (
+                      macroDef.bodyLines.map((line, idx) => (
+                        <div key={idx} className="macro-body-line">
+                          <code>{line.substring(0, 72).trimEnd()}</code>
+                        </div>
+                      ))
+                    ) : (
+                      macroDef.body.map((stmt, idx) => (
+                        <div key={idx} className="macro-body-line">
+                          <code>{stmt.rawText.substring(0, 72).trimEnd()}</code>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+                {statement.isMacroCall && macroDef && (() => {
+                  // パラメータ置換を行って展開後の内容を生成
+                  const actualParams: string[] = (statement.operandsText || "")
+                    .split(/\s*,\s*/)
+                    .map(p => p.trim())
+                    .filter(p => p.length > 0);
+                  const paramMap = new Map<string, string>();
+                  for (let i = 0; i < macroDef.parameters.length; i++) {
+                    const formalParam = macroDef.parameters[i];
+                    const actualParam = i < actualParams.length ? actualParams[i] : "";
+                    paramMap.set(formalParam.toUpperCase().replace(/^&/, ""), actualParam);
+                  }
+                  const bodyLines = macroDef.bodyLines || macroDef.body.map(stmt => stmt.rawText);
+                  const expandedLines = bodyLines.map(line => {
+                    let expandedLine = line;
+                    for (const [formal, actual] of paramMap.entries()) {
+                      // &パラメータ名を実際の値に置換（単語境界を考慮）
+                      const regex = new RegExp(`&${formal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, "gi");
+                      expandedLine = expandedLine.replace(regex, actual || "");
+                    }
+                    return expandedLine;
+                  });
+                  
+                  // 展開後の内容が定義と同じかどうかをチェック
+                  const isExpandedSameAsDefinition = bodyLines.length === expandedLines.length &&
+                    bodyLines.every((line, idx) => line.trim() === expandedLines[idx].trim());
+                  
+                  // 展開後の内容が定義と異なる場合のみ表示
+                  if (!isExpandedSameAsDefinition) {
+                    return (
+                      <div className="macro-expansion">
+                        <label>マクロ展開後（この呼び出し）:</label>
+                        <div className="macro-expansion-content">
+                          {expandedLines.map((line, idx) => (
+                            <div key={idx} className="macro-expansion-line">
+                              <code>{line.substring(0, 72).trimEnd()}</code>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+                <div className="macro-meta">
+                  <small>定義位置: 行 {macroDef.definedAt}</small>
+                </div>
               </div>
             </div>
-          </div>
+          </>
         ) : (
           <>
             {instruction?.description && (

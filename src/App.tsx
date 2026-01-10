@@ -354,11 +354,14 @@ function App() {
             </div>
             <div className="right-panels">
               <DetailPanel 
-                statement={selectedStatement} 
-                context={parseResult.context}
+                statement={selectedStatement}
               />
               <InstructionPanel statement={selectedStatement} context={parseResult.context} />
-              <OperandPanel statement={selectedStatement} />
+              <OperandPanel 
+                statement={selectedStatement} 
+                context={parseResult.context}
+                fileManager={fileManager}
+              />
               <LabelPanel symbols={parseResult.symbols} />
               <FilesPanel files={fileManager.getAllFiles()} />
             </div>

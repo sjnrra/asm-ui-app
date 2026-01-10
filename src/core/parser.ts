@@ -322,6 +322,7 @@ export class AssemblyParser {
             value: processedLine.originalLineNumber,
             type: "label",
             definedAt: processedLine.originalLineNumber,
+            sourceFile: processedLine.sourceFile,
           });
         }
 

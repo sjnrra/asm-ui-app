@@ -60,57 +60,80 @@ export function parseLine(line: string, lineNumber: number): AsmStatement {
 
   // カラム1-8: ラベル
   // z/OSアセンブラの固定カラム形式では、ラベルはカラム1-8に収まる必要がある
-  // ただし、実際のファイルでは、ラベルが8文字を超える場合もある（例: RESTOREREGS, LOADCONST）
-  // その場合、カラム1-8（またはカラム1-8の最初の非空白文字から8文字）をラベルとして扱う
-  // ラベルが8文字を超える場合、最初の8文字のみがラベルとして有効
+  // ただし、実際のファイルでは、ラベルが8文字を超える場合もある（例: RESTOREREGS, LOADCONST, BUFFERLEN）
+  // その場合、実際の行のラベル全体を認識し、ハイライト表示で正確に表示するため、
+  // ラベルが8文字を超える場合でも、実際のラベル全体をトークンとして扱う
   const labelArea = line.substring(0, Math.min(8, line.length));
   const labelTrimmed = labelArea.trim();
   
   // ラベルの条件: カラム1-8に非空白文字がある場合
-  // カラム9が空白でない場合でも、カラム1-8の最初の非空白文字から最大8文字までをラベルとして扱う
+  // カラム9が空白でない場合、ラベルが8文字を超えている可能性がある
   if (labelTrimmed.length > 0) {
     // カラム1-8の最初の非空白文字の位置を取得
     const labelStartInArea = labelArea.length - labelArea.trimStart().length;
-    // ラベルは最大8文字（カラム1-8に収まる）
-    const maxLabelLength = Math.min(8 - labelStartInArea, labelTrimmed.length);
-    const labelInArea = labelTrimmed.substring(0, maxLabelLength);
     
-    if (labelInArea.length > 0) {
-      label = labelInArea;
-      // ラベル部分の実際の位置を計算
-      const labelStart = labelStartInArea;
-      const labelEnd = labelStart + labelInArea.length;
+    // ラベルが8文字を超えるかどうかを確認（カラム9が空白でない場合）
+    let actualLabelEnd = labelStartInArea + labelTrimmed.length;
+    let actualLabelText = labelTrimmed;
+    
+    if (line.length > 8 && line[8] !== " " && line[8] !== "\t") {
+      // カラム9が空白でない場合、ラベルが8文字を超えている
+      // カラム9以降もラベルの一部として扱う（表示のため）
+      // 実際のラベルの終了位置を探す（空白または命令開始まで）
+      for (let i = 8; i < line.length && i < 72; i++) {
+        if (/\s/.test(line[i])) {
+          actualLabelEnd = i;
+          break;
+        }
+        actualLabelText += line[i];
+        actualLabelEnd = i + 1;
+      }
+    } else {
+      // ラベルは8文字以内
+      const maxLabelLength = Math.min(8 - labelStartInArea, labelTrimmed.length);
+      actualLabelText = labelTrimmed.substring(0, maxLabelLength);
+      actualLabelEnd = labelStartInArea + actualLabelText.length;
+    }
+    
+    if (actualLabelText.length > 0) {
+      // 有効なラベル名は最初の8文字（z/OSの仕様に従う）
+      label = actualLabelText.substring(0, Math.min(8, actualLabelText.length));
       
       // ラベル前の空白
-      if (labelStart > 0) {
+      if (labelStartInArea > 0) {
         tokens.push({
           type: TokenType.WHITESPACE,
-          text: labelArea.substring(0, labelStart),
+          text: line.substring(0, labelStartInArea),
           columnStart: 0,
-          columnEnd: labelStart,
+          columnEnd: labelStartInArea,
         });
       }
       
-      // ラベル
+      // ラベル全体をトークンとして追加（8文字を超える場合も含む）
       tokens.push({
         type: TokenType.LABEL,
-        text: labelInArea,
-        columnStart: labelStart,
-        columnEnd: labelEnd,
+        text: line.substring(labelStartInArea, actualLabelEnd),
+        columnStart: labelStartInArea,
+        columnEnd: actualLabelEnd,
       });
       
-      // カラム9の空白（ラベルの後からカラム9まで）
-      // カラム9が空白でない場合でも、カラム9までの空白を追加
-      if (line.length > 8) {
-        // カラム9が空白でない場合、ラベルが8文字を超えている可能性がある
-        // その場合、カラム9から命令部分の開始までを空白として扱う
-        const whitespaceAfterLabel = line.substring(labelEnd, 9);
-        if (whitespaceAfterLabel.length > 0) {
+      // ラベルの後の空白（命令部分の開始まで）
+      if (actualLabelEnd < line.length) {
+        // 命令部分の開始位置を探す
+        let instructionStartPos = actualLabelEnd;
+        for (let i = actualLabelEnd; i < line.length && i < 72; i++) {
+          if (!/\s/.test(line[i])) {
+            instructionStartPos = i;
+            break;
+          }
+        }
+        
+        if (instructionStartPos > actualLabelEnd) {
           tokens.push({
             type: TokenType.WHITESPACE,
-            text: whitespaceAfterLabel,
-            columnStart: labelEnd,
-            columnEnd: 9,
+            text: line.substring(actualLabelEnd, instructionStartPos),
+            columnStart: actualLabelEnd,
+            columnEnd: instructionStartPos,
           });
         }
       }
@@ -120,28 +143,35 @@ export function parseLine(line: string, lineNumber: number): AsmStatement {
   // カラム10-71: 命令とオペランド
   // z/OSアセンブラでは、ラベルがない場合でも命令はカラム10（インデックス9）から始まる
   // ただし、カラム1-8が完全に空白で、カラム9以前から命令が始まる場合は柔軟に対応
-  // ラベルがある場合、命令はカラム10（インデックス9）から始まる
-  // ただし、ラベルが8文字を超える場合、命令はラベルの直後から始まる可能性がある
+  // ラベルがある場合、命令はラベルの後の空白の後から始まる
   let instructionStart = 9; // デフォルトはカラム10
   if (label) {
-    // ラベルがある場合、カラム9以降から命令を探す
-    // ラベルが8文字を超える場合、ラベルの終了位置の直後から命令を探す
-    // まず、ラベルがカラム9以降に続いているかどうかを確認
-    // カラム9以降で最初の非空白文字を探す
-    let firstNonSpaceAfterLabel = -1;
-    // ラベルが8文字を超える場合、ラベルの終了位置（最大8）以降から探す
+    // ラベルがある場合、ラベルトークンの終了位置の後に空白があるので、その後の最初の非空白文字を探す
     const labelToken = tokens.find(t => t.type === TokenType.LABEL);
-    const labelEndPos = labelToken ? labelToken.columnEnd : 8;
-    for (let i = Math.max(9, labelEndPos); i < line.length; i++) {
-      if (!/\s/.test(line[i])) {
-        firstNonSpaceAfterLabel = i;
-        break;
+    if (labelToken) {
+      // ラベルトークンの後に空白トークンがある場合、その後の位置から命令開始
+      const whitespaceAfterLabel = tokens.find(t => 
+        t.type === TokenType.WHITESPACE && t.columnStart === labelToken.columnEnd
+      );
+      if (whitespaceAfterLabel) {
+        instructionStart = whitespaceAfterLabel.columnEnd;
+      } else {
+        // 空白トークンがない場合、ラベル終了位置の後から最初の非空白文字を探す
+        for (let i = labelToken.columnEnd; i < line.length && i < 72; i++) {
+          if (!/\s/.test(line[i])) {
+            instructionStart = i;
+            break;
+          }
+        }
       }
-    }
-    if (firstNonSpaceAfterLabel >= 0) {
-      instructionStart = firstNonSpaceAfterLabel;
     } else {
-      instructionStart = 9; // デフォルトはカラム10
+      // ラベルトークンが見つからない場合、カラム9以降から探す
+      for (let i = 9; i < line.length && i < 72; i++) {
+        if (!/\s/.test(line[i])) {
+          instructionStart = i;
+          break;
+        }
+      }
     }
   } else {
     // ラベルがない場合、カラム9以前から命令が始まる場合は柔軟に対応
