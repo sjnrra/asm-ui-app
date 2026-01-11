@@ -1101,7 +1101,7 @@ function App() {
             style={{
               padding: "4px 12px",
               background: "#007acc",
-              color: "white",
+              color: "#d4d4d4",
               border: "none",
               borderRadius: "3px",
               cursor: "pointer",
@@ -1146,7 +1146,7 @@ function App() {
               ) : (
                 <div className="empty-message">
                   <p>解析結果がありません。ソースコードを入力してください。</p>
-                  <p style={{ fontSize: "13px", color: "#6a737d", marginTop: "8px" }}>
+                  <p style={{ fontSize: "13px", color: "#858585", marginTop: "8px" }}>
                     デバッグ: ソース行数 = {sourceText.split("\n").length}
                   </p>
                 </div>

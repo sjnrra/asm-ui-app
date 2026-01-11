@@ -12,7 +12,7 @@ export const LabelPanel = ({ symbols, selectedLabel, onLabelSelect }: LabelPanel
 
   const getTypeLabel = (type: string): string => {
     const typeMap: Record<string, string> = {
-      label: "ラベル",
+      label: "LABEL",
       equ: "EQU",
       constant: "定数(DC)",
       variable: "変数(DS)",
