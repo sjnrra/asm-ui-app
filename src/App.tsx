@@ -283,9 +283,9 @@ function App() {
               <span>マクロ数: {parseResult.context.macros?.size || 0}</span>
               <span>読み込み済みファイル: {fileManager.getAllFiles().length}</span>
               {!dependenciesLoaded && <span style={{ color: "#ffa500" }}>依存ファイル読み込み中...</span>}
-              {parseResult.errors.length > 0 && (
+              {/* {parseResult.errors.length > 0 && (
                 <span className="error-count">エラー: {parseResult.errors.length}</span>
-              )}
+              )} */}
             </>
           )}
           <input
@@ -311,7 +311,7 @@ function App() {
             ファイル読み込み
           </button>
         </div>
-        {parseResult.errors.length > 0 && (
+        {/* {parseResult.errors.length > 0 && (
           <div className="error-list">
             {parseResult.errors.slice(0, 5).map((err, idx) => (
               <div key={idx} className="error-item">
@@ -319,7 +319,7 @@ function App() {
               </div>
             ))}
           </div>
-        )}
+        )} */}
       </header>
       <MainLayout
         editor={

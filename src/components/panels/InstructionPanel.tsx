@@ -7,7 +7,40 @@ interface InstructionPanelProps {
 }
 
 export const InstructionPanel = ({ statement, context }: InstructionPanelProps) => {
-  if (!statement || !statement.opcode) {
+  // 継続行の場合、継続元の行のオペコード情報を表示する必要がある
+  // しかし、現在の実装では継続元の行の情報を直接取得できないため、
+  // 継続行の場合は継続元の行を探す必要がある
+  // ただし、今回は継続行の場合でも何も表示しない（将来的に拡張可能）
+  
+  if (!statement) {
+    return (
+      <div className="instruction-panel">
+        <div className="panel-header">
+          <h3>命令情報</h3>
+        </div>
+        <p className="empty-state">命令が含まれる行を選択してください</p>
+      </div>
+    );
+  }
+  
+  // 継続行の場合
+  if (statement.isContinuation && statement.continuationOf) {
+    return (
+      <div className="instruction-panel">
+        <div className="panel-header">
+          <h3>命令情報</h3>
+        </div>
+        <div className="instruction-content">
+          <p className="instruction-note">
+            この行は継続行です。命令情報は行{statement.continuationOf}を参照してください。
+          </p>
+        </div>
+      </div>
+    );
+  }
+  
+  // オペコードがない場合（継続行ではないが、オペコードがない行）
+  if (!statement.opcode) {
     return (
       <div className="instruction-panel">
         <div className="panel-header">
@@ -51,35 +84,19 @@ export const InstructionPanel = ({ statement, context }: InstructionPanelProps) 
         </div>
         {macroDef ? (
           <>
-            {statement.isMacroCall && statement.macroName && (
-              <div className="instruction-section">
-                <label>マクロ呼び出し:</label>
-                <span className="macro-call-value" title={`この行はマクロ "${statement.macroName}" を呼び出しています`}>
-                  ⚡ {statement.macroName}
-                </span>
-              </div>
-            )}
             {macroDef.sourceFile && (
               <div className="instruction-section dependency-files-section">
                 <label>マクロ定義ファイル（依存ファイル）:</label>
                 <div className="dependency-files-list">
                   <div className="dependency-file-item" title={`このマクロが定義されているファイル: ${macroDef.sourceFile}`}>
-                    📄 {macroDef.sourceFile}
+                    {macroDef.sourceFile}
                   </div>
                 </div>
               </div>
             )}
             <div className="instruction-section macro-definition-section">
-              <label>マクロ定義:</label>
               <div className="macro-definition-content">
-                <div className="macro-name">
-                  <strong>{macroDef.name}</strong>
-                  {macroDef.sourceFile && (
-                    <span className="macro-source-file" title={`マクロ定義元: ${macroDef.sourceFile}`}>
-                      📄 {macroDef.sourceFile}
-                    </span>
-                  )}
-                </div>
+  
                 {macroDef.parameters.length > 0 && (
                   <div className="macro-parameters">
                     <label>パラメータ:</label>

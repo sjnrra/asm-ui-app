@@ -169,69 +169,204 @@ export class AssemblyParser {
       originalLineNumber: number; // 元のソースコードでの行番号（1始まり）
       sourceFile?: string; // ソースファイル名（COPY展開用）
       expandedFrom?: string; // マクロ展開元のマクロ名
+      isContinuation?: boolean; // この行が継続行かどうか
+      continuationLines?: number[]; // 継続行の行番号リスト（最初の行を含む）
+      continuationOperands?: string[]; // 継続行のオペランド部分（最初の行のオペランド + 継続行の内容）
+      continuationRawLines?: string[]; // 継続行の元の行の内容（完全な行）
     }
     
     const processedLines: ProcessedLine[] = [];
-    let continuationBuffer: { content: string; startLineNumber: number } | null = null;
     
+    /**
+     * 継続行のバッファ
+     * 複数行にわたる命令を一時的に保持し、継続が終了したら統合する
+     */
+    let continuationBuffer: { 
+      firstLine: string; // 最初の行の内容（カラム1-71、72桁目は除外）
+      firstLineNumber: number; // 最初の行の行番号（継続行開始行の行番号）
+      continuationLines: number[]; // 継続行の行番号リスト（最初の行を含む）例: [116, 117, 118, 119]
+      continuationOperands: string[]; // 継続行のオペランド部分（カラム1-71の内容のみ）例: ["ACB=UT1ACB,", "AREA=ARECORD,AREALEN=L'ARECORD,"]
+      continuationRawLines: string[]; // 継続行の元の行の内容（完全な行、カラム72以降も含む、表示用）
+    } | null = null;
+    
+    /**
+     * ステップ1: 継続行の結合処理
+     * 
+     * z/OSアセンブラでは、72桁目に非空白文字（通常は'+'）がある場合、
+     * 次の行が前の行の継続となる。
+     * 
+     * 継続行開始の判定:
+     * - 現在の行の72桁目に文字がある AND 前の行の72桁目に文字がない
+     * 
+     * 継続行の判定:
+     * - 前の行の72桁目に文字がある
+     */
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
-      const originalLineNumber = baseLineNumber + i; // ベース行番号を考慮
+      const originalLineNumber = baseLineNumber + i; // ベース行番号を考慮（COPY展開時に使用）
       
-      // 継続行のチェック: カラム72（インデックス71）に非空白文字がある場合
-      const isContinuation = line.length > 71 && 
+      // 現在の行の72桁目（インデックス71）に非空白文字があるかチェック
+      const currentLineHasContinuation = line.length > 71 && 
         line[71] !== " " && 
         line[71] !== "\t" && 
         line[71] !== "" &&
         line[71] !== undefined;
       
+      // 前の行の72桁目に非空白文字があるかチェック
+      const prevLine = i > 0 ? lines[i - 1] : null;
+      const prevLineHasContinuation = prevLine && prevLine.length > 71 && 
+        prevLine[71] !== " " && 
+        prevLine[71] !== "\t" && 
+        prevLine[71] !== "" &&
+        prevLine[71] !== undefined;
+      
+      // 継続行開始: 現在の行の72桁目に文字があり、前の行の72桁目に文字がない場合
+      // 例: 行116の72桁目に'+'があり、行115の72桁目に文字がない → 行116が継続行開始
+      const isContinuationStart = currentLineHasContinuation && !prevLineHasContinuation;
+      
+      // 継続行: 前の行の72桁目に文字がある場合、この行は継続行
+      // 例: 行117は行116の72桁目に'+'があるので継続行
+      const isContinuation = prevLineHasContinuation;
+      
+      /**
+       * 継続行バッファがある場合の処理
+       * 継続中の命令に追加の行を結合するか、継続を終了する
+       */
       if (continuationBuffer) {
         if (isContinuation) {
-          // 継続行を結合: カラム73以降の内容を結合
-          const continuationContent = line.length > 72 ? line.substring(72).trim() : "";
-          continuationBuffer.content += continuationContent;
+          /**
+           * 継続行の処理: 現在の行を継続行バッファに追加
+           * 
+           * 処理内容:
+           * - カラム1-71の内容（オペランドの続き）をcontinuationOperandsに追加
+           * - 行番号をcontinuationLinesに追加
+           * - 完全な行（表示用）をcontinuationRawLinesに追加
+           */
+          const continuationContent = line.substring(0, 72).trimEnd();
+          continuationBuffer.continuationOperands.push(continuationContent);
+          continuationBuffer.continuationLines.push(originalLineNumber);
+          continuationBuffer.continuationRawLines.push(line); // 元の行の内容を保存（表示用）
         } else {
-          // 継続終了: バッファを確定して現在の行を処理
+          /**
+           * 継続終了: バッファを確定してprocessedLinesに追加
+           * 
+           * 処理内容:
+           * 1. 継続行のオペランドを結合して最初の行に統合
+           * 2. continuationBufferの情報をProcessedLineとして追加
+           * 3. 現在の行を処理（新しい継続行開始の可能性をチェック）
+           */
+          const allContinuationOperands = continuationBuffer.continuationOperands.join(" ");
+          let fullContent = continuationBuffer.firstLine;
+          if (allContinuationOperands) {
+            // 継続行の内容をオペランドに追加
+            // 例: "RPL AM=VSAM," + " " + "ACB=UT1ACB, AREA=ARECORD,AREALEN=L'ARECORD, OPTCD=(KEY,SEQ,LOC)"
+            fullContent = continuationBuffer.firstLine + " " + allContinuationOperands;
+          }
+          
+          // 継続行開始行をprocessedLinesに追加（継続行の情報を含む）
           processedLines.push({
-            content: continuationBuffer.content,
-            originalLineNumber: continuationBuffer.startLineNumber,
+            content: fullContent,
+            originalLineNumber: continuationBuffer.firstLineNumber,
+            continuationLines: continuationBuffer.continuationLines,
+            continuationOperands: continuationBuffer.continuationOperands,
+            continuationRawLines: continuationBuffer.continuationRawLines,
+            isContinuation: false, // 最初の行なので継続行ではない
           });
           continuationBuffer = null;
-          processedLines.push({
-            content: line,
-            originalLineNumber,
-          });
+          
+          /**
+           * 継続終了後、現在の行が新しい継続行開始かどうかをチェック
+           * 複数の継続行の塊が連続する場合に対応
+           */
+          if (isContinuationStart) {
+            // 新しい継続行開始: カラム1-71の内容を保存
+            const mainContent = line.substring(0, 72).trimEnd();
+            continuationBuffer = {
+              firstLine: mainContent,
+              firstLineNumber: originalLineNumber,
+              continuationLines: [originalLineNumber],
+              continuationOperands: [],
+              continuationRawLines: [],
+            };
+          } else {
+            // 通常の行として処理
+            processedLines.push({
+              content: line,
+              originalLineNumber,
+              isContinuation: false,
+            });
+          }
         }
       } else {
-        if (isContinuation) {
-          // 継続開始: カラム1-71の内容とカラム73以降を結合
+        /**
+         * 継続行バッファがない場合の処理
+         * 継続行開始かどうかをチェック
+         */
+        if (isContinuationStart) {
+          /**
+           * 継続開始: 新しい継続行バッファを作成
+           * 
+           * 処理内容:
+           * - カラム1-71の内容をfirstLineに保存（72桁目は除外）
+           * - 行番号をfirstLineNumberとcontinuationLines[0]に保存
+           */
           const mainContent = line.substring(0, 72).trimEnd();
-          const continuationContent = line.length > 72 ? line.substring(72).trim() : "";
           continuationBuffer = {
-            content: mainContent + " " + continuationContent,
-            startLineNumber: originalLineNumber,
+            firstLine: mainContent,
+            firstLineNumber: originalLineNumber,
+            continuationLines: [originalLineNumber],
+            continuationOperands: [],
+            continuationRawLines: [],
           };
         } else {
+          // 通常の行として処理（継続行ではない）
           processedLines.push({
             content: line,
             originalLineNumber,
+            isContinuation: false,
           });
         }
       }
     }
     
-    // 最後に継続バッファが残っている場合
+    /**
+     * 最後に継続バッファが残っている場合の処理
+     * ファイルの最後の行が継続行開始の場合、バッファが残ったままになるため、
+     * ここで確定してprocessedLinesに追加する
+     */
     if (continuationBuffer) {
+      // オペランド部分に継続行の内容を追加
+      const allContinuationOperands = continuationBuffer.continuationOperands.join(" ");
+      let fullContent = continuationBuffer.firstLine;
+      if (allContinuationOperands) {
+        // 継続行の内容を追加
+        fullContent = continuationBuffer.firstLine + " " + allContinuationOperands;
+      }
+      
       processedLines.push({
-        content: continuationBuffer.content,
-        originalLineNumber: continuationBuffer.startLineNumber,
+        content: fullContent,
+        originalLineNumber: continuationBuffer.firstLineNumber,
+        continuationLines: continuationBuffer.continuationLines,
+        continuationOperands: continuationBuffer.continuationOperands,
+        continuationRawLines: continuationBuffer.continuationRawLines,
+        isContinuation: false, // 最初の行なので継続行ではない
       });
     }
 
-    // 各行を解析（COPY文とMACRO/ENDMの処理を含む）
+    /**
+     * ステップ2: 各行を解析（COPY文とMACRO/ENDMの処理を含む）
+     * 
+     * 処理フロー:
+     * 1. 継続行の情報を設定（isContinuation, continuationOf, continuationCount）
+     * 2. COPY文の処理（外部ファイルのインクルード）
+     * 3. MACRO/ENDMの処理（マクロ定義の抽出）
+     * 4. 通常のステートメントの解析（parseLine関数を使用）
+     * 5. オペコード情報の補完（enrichStatement関数を使用）
+     * 6. 継続行の個別ステートメント作成（表示用）
+     */
     let currentLineIndex = 0;
     while (currentLineIndex < processedLines.length) {
-      // ステートメント数の上限チェック
+      // ステートメント数の上限チェック（無限ループ防止）
       if (statementCount >= this.maxStatements) {
         errors.push({
           lineNumber: processedLines[Math.min(currentLineIndex, processedLines.length - 1)].originalLineNumber,
@@ -246,12 +381,57 @@ export class AssemblyParser {
       currentLineIndex++;
 
       try {
-        const statement = parseLine(processedLine.content, processedLine.originalLineNumber);
+        /**
+         * 継続行の処理フラグを設定
+         * 
+         * hasContinuationOperandsフラグ:
+         * - true: 個別の継続行を処理する場合（オペコードは存在しない）
+         * - false: 継続行開始行を処理する場合（オペコードを保持する必要がある）
+         * 
+         * 継続行開始行ではオペコードを保持する必要があるため、
+         * hasContinuationOperandsをfalseに設定する
+         */
+        const isContinuationLine = processedLine.isContinuation; // 個別の継続行かどうか
+        const hasContinuationOperands = isContinuationLine; // 個別の継続行の場合のみ true
+        
+        // 行を解析（ラベル、オペコード、オペランド、コメントを抽出）
+        const statement = parseLine(processedLine.content, processedLine.originalLineNumber, hasContinuationOperands);
         statementCount++;
         
         // 外部ファイルからの読み込み情報を設定
         if (processedLine.sourceFile) {
           statement.sourceFile = processedLine.sourceFile;
+        }
+        
+        /**
+         * 継続行の情報を設定
+         * 
+         * continuationLinesが存在し、複数行ある場合:
+         * - processedLine.originalLineNumber === continuationLines[0] → 継続行開始行
+         * - それ以外 → 個別の継続行
+         */
+        if (processedLine.continuationLines && processedLine.continuationLines.length > 1) {
+          const firstLineNumber = processedLine.continuationLines[0];
+          if (processedLine.originalLineNumber === firstLineNumber) {
+            // 継続行開始行: この行が継続行の最初の行である
+            statement.isContinuation = false; // 最初の行なので継続行ではない
+            statement.continuationOf = undefined; // 最初の行なので継続元なし
+            statement.continuationCount = processedLine.continuationLines.length - 1; // 継続行の数（最初の行を除く）
+          } else {
+            // 個別の継続行: 後で個別のステートメントとして追加される
+            statement.isContinuation = true;
+            statement.continuationOf = firstLineNumber;
+            statement.continuationCount = undefined; // 継続行自体なのでカウントは不要
+          }
+        } else if (processedLine.continuationOperands && processedLine.continuationOperands.length > 0) {
+          // 継続行のオペランドがある場合（continuationLinesがない場合）
+          statement.isContinuation = false; // 最初の行なので継続行ではない
+          statement.continuationOf = undefined; // 最初の行なので継続元なし
+          statement.continuationCount = processedLine.continuationOperands.length; // 継続行の数
+        } else if (processedLine.isContinuation) {
+          // 個別の継続行（後でcontinuationOfが設定される）
+          statement.isContinuation = true;
+          // continuationOf は後で設定する必要がある
         }
         
         // COPY文の処理
@@ -332,6 +512,95 @@ export class AssemblyParser {
         this.enrichStatement(statement, processedLine.originalLineNumber, errors);
         
         statements.push(statement);
+        
+        // 継続行がある場合、継続行も個別のステートメントとして追加
+        if (processedLine.continuationLines && processedLine.continuationLines.length > 1 && processedLine.continuationOperands && processedLine.continuationRawLines) {
+          // 最初の行番号を取得
+          const firstLineNumber = processedLine.continuationLines[0];
+          
+          // 各継続行を個別のステートメントとして作成
+          // continuationLines[0] は最初の行、continuationLines[1...] が継続行
+          // continuationOperands と continuationRawLines のインデックスは i - 1
+          // ただし、最後の行が継続行で continuationLines に含まれているが continuationOperands に含まれていない場合がある
+          for (let i = 1; i < processedLine.continuationLines.length; i++) {
+            const continuationLineNumber = processedLine.continuationLines[i];
+            // continuationOperands と continuationRawLines のインデックスは i - 1
+            // ただし、最後の行が continuationOperands に含まれていない場合があるので、フォールバックを用意
+            const operandIndex = i - 1;
+            const continuationOperand = operandIndex < processedLine.continuationOperands.length 
+              ? processedLine.continuationOperands[operandIndex] 
+              : "";
+            const continuationRawLine = operandIndex < processedLine.continuationRawLines.length 
+              ? processedLine.continuationRawLines[operandIndex] 
+              : "";
+            
+            // 継続行のステートメントを作成
+            // 継続行はオペランドのみなので、オペコードはなし
+            if (continuationRawLine || continuationOperand) {
+              const continuationStatement = parseLine(continuationOperand || continuationRawLine.substring(0, 72).trimEnd(), continuationLineNumber, true);
+              continuationStatement.isContinuation = true;
+              continuationStatement.continuationOf = firstLineNumber;
+              continuationStatement.continuationCount = undefined; // 継続行自体なのでカウントは不要
+              
+              // 継続行のrawTextを設定（元の行の内容を保持）
+              if (continuationRawLine) {
+                continuationStatement.rawText = continuationRawLine;
+              } else {
+                // continuationRawLine がない場合、continuationOperand から作成
+                continuationStatement.rawText = continuationOperand.padEnd(72, " ") + "+";
+              }
+              
+              statements.push(continuationStatement);
+            }
+          }
+          
+          // 最後の行が継続行で、continuationLines に含まれているが continuationOperands に含まれていない場合をチェック
+          // continuationLines の数が continuationOperands の数 + 1 より大きい場合、最後の行が処理されていない可能性がある
+          // すべての継続行が処理されているか確認
+          const processedLineNumbers = new Set(statements
+            .filter(s => s.isContinuation && s.continuationOf === firstLineNumber)
+            .map(s => s.lineNumber));
+          
+          // continuationLines に含まれるすべての継続行が処理されているか確認
+          for (let i = 1; i < processedLine.continuationLines.length; i++) {
+            const continuationLineNumber = processedLine.continuationLines[i];
+            
+            // まだ処理されていない場合
+            if (!processedLineNumbers.has(continuationLineNumber)) {
+              // この行の情報を取得
+              const operandIndex = i - 1;
+              let continuationOperand = "";
+              let continuationRawLine = "";
+              
+              if (operandIndex < processedLine.continuationOperands.length) {
+                continuationOperand = processedLine.continuationOperands[operandIndex];
+              }
+              if (operandIndex < processedLine.continuationRawLines.length) {
+                continuationRawLine = processedLine.continuationRawLines[operandIndex];
+              }
+              
+              // continuationRawLine がない場合、continuationOperand から推測
+              if (!continuationRawLine && continuationOperand) {
+                continuationRawLine = continuationOperand.padEnd(72, " ") + "+";
+              }
+              
+              // continuationOperand がない場合、continuationRawLine から取得
+              if (!continuationOperand && continuationRawLine) {
+                continuationOperand = continuationRawLine.substring(0, 72).trimEnd();
+              }
+              
+              if (continuationOperand || continuationRawLine) {
+                const continuationStatement = parseLine(continuationOperand || continuationRawLine.substring(0, 72).trimEnd(), continuationLineNumber, true);
+                continuationStatement.isContinuation = true;
+                continuationStatement.continuationOf = firstLineNumber;
+                continuationStatement.continuationCount = undefined;
+                continuationStatement.rawText = continuationRawLine || (continuationOperand.padEnd(72, " ") + "+");
+                
+                statements.push(continuationStatement);
+              }
+            }
+          }
+        }
       } catch (error) {
         errors.push({
           lineNumber: processedLine.originalLineNumber,

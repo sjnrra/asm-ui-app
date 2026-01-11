@@ -10,7 +10,7 @@ export const DetailPanel = ({ statement }: DetailPanelProps) => {
     return (
       <div className="detail-panel">
         <div className="panel-header">
-          <h3>詳細情報</h3>
+          <h3>基本情報</h3>
         </div>
         <p className="empty-state">行を選択してください</p>
       </div>
@@ -20,7 +20,7 @@ export const DetailPanel = ({ statement }: DetailPanelProps) => {
   return (
     <div className="detail-panel">
       <div className="panel-header">
-        <h3>詳細情報</h3>
+        <h3>基本情報</h3>
       </div>
       <div className="detail-content">
         <div className="detail-section">
@@ -56,6 +56,22 @@ export const DetailPanel = ({ statement }: DetailPanelProps) => {
             <label>外部ファイル:</label>
             <span className="source-file-value" title={`この行は外部ファイル "${statement.sourceFile}" から読み込まれました`}>
               📄 {statement.sourceFile}
+            </span>
+          </div>
+        )}
+        {(statement.isContinuation === true || (statement.continuationCount !== undefined && statement.continuationCount > 0)) && (
+          <div className="detail-section">
+            <label>継続行:</label>
+            <span className="continuation-value">
+              {statement.isContinuation ? (
+                <span title={`この行は継続行です（行${statement.continuationOf || '?'}の続き）`}>
+                  ✓ 継続行（行{statement.continuationOf || '?'}の続き）
+                </span>
+              ) : statement.continuationCount !== undefined && statement.continuationCount > 0 ? (
+                <span title={`この行は${statement.continuationCount}行の継続行を持っています`}>
+                   {statement.continuationCount}行継続
+                </span>
+              ) : null}
             </span>
           </div>
         )}

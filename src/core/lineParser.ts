@@ -8,7 +8,7 @@ import { TokenType } from "./types";
  * カラム10-71: 命令とオペランド
  * カラム72以降: コメント（継続行の場合はカラム72に'X'など）
  */
-export function parseLine(line: string, lineNumber: number): AsmStatement {
+export function parseLine(line: string, lineNumber: number, hasContinuationOperands?: boolean): AsmStatement {
   const rawText = line;
   const trimmed = line.trimEnd();
   
@@ -226,9 +226,193 @@ export function parseLine(line: string, lineNumber: number): AsmStatement {
     const originalPart = line.substring(instructionStart, instructionEnd);
     
     // まず、オペコードとオペランドを分離
-    const parts = instructionPart.split(/\s+/, 2);
-    const opcodePart = parts[0] || "";
-    let operandsPart = parts[1] || "";
+    // シングルクォーテーションまたはダブルクォーテーションで囲まれた部分内の空白は無視する
+    /**
+     * オペコードとオペランドの抽出
+     * 
+     * 処理方針:
+     * - 継続行の場合: オペコードは存在しない（すべてオペランド）
+     * - 通常の行の場合: 最初の空白までがオペコード、以降がオペランド
+     * - 文字列リテラル内の空白は考慮しない
+     */
+    let opcodePart = "";
+    let operandsPart = "";
+    let inString = false;
+    let stringChar = "";
+    let opcodeEndPos = -1;
+    
+    /**
+     * 継続行の処理
+     * 
+     * hasContinuationOperandsがtrueの場合:
+     * - 個別の継続行を処理する場合（オペコードは存在しない）
+     * - または、継続行が結合された行を処理する場合（最初の行のオペコードを抽出）
+     * 
+     * 判定ロジック:
+     * 1. 内容がオペランド文字（=, ,, (）で始まる場合 → すべてオペランド
+     * 2. 最初の単語がオペコードとして認識されない場合 → すべてオペランド
+     * 3. それ以外 → 最初の空白までがオペコード
+     */
+    if (hasContinuationOperands) {
+      // 継続行が結合された行を処理する場合と、個別の継続行を処理する場合を区別する必要がある
+      // 個別の継続行の場合、内容全体がオペランドとして扱われる（オペコードは存在しない）
+      // 結合された行の場合、最初の行のオペコードを特定する必要がある
+      
+      // 継続行が結合された後の行は、最初の行のオペコードとオペランド、そして継続行のオペランドが結合されている
+      // 最初の行のオペコードを特定するために、最初の空白で区切られた最初の単語をオペコードと仮定
+      // ただし、これはラベルの後の最初の単語（命令部分の最初の単語）
+      
+      // 文字列内の空白を考慮して最初の空白を探す
+      let firstSpaceIndex = -1;
+      inString = false;
+      stringChar = "";
+      
+      for (let i = 0; i < instructionPart.length; i++) {
+        const char = instructionPart[i];
+        
+        // 文字列開始/終了のチェック
+        if ((char === "'" || char === '"') && (i === 0 || instructionPart[i - 1] !== "\\")) {
+          if (!inString) {
+            inString = true;
+            stringChar = char;
+          } else if (char === stringChar) {
+            if (i + 1 >= instructionPart.length || instructionPart[i + 1] !== stringChar) {
+              inString = false;
+              stringChar = "";
+            } else {
+              i++; // エスケープされたクォート
+            }
+          }
+          continue;
+        }
+        
+        // 文字列内の空白は無視
+        if (inString) {
+          continue;
+        }
+        
+        // 文字列外の空白を見つけた場合
+        if (/\s/.test(char)) {
+          firstSpaceIndex = i;
+          break;
+        }
+      }
+      
+      // 継続行の場合、最初の空白が見つかっても、それがオペコードかどうかを判定する必要がある
+      // 継続行は通常、オペランドから始まるので、最初の空白までの部分がオペコードとして認識される可能性がある
+      // しかし、継続行の内容のみが渡されている場合（個別の継続行を処理する場合）、すべてがオペランドとして扱われるべき
+      
+      // 個別の継続行かどうかを判定
+      // 継続行の内容は通常：
+      // 1. 先頭が空白でインデントされている
+      // 2. =、,、( などのオペランド文字で始まる
+      // 3. または、内容が短く、オペコードとして認識される可能性が低い（例: DDNAME=SYSUT1,MACRF=IN）
+      
+      const trimmedInstruction = instructionPart.trim();
+      const startsWithOperand = trimmedInstruction.startsWith("=") || 
+                                 trimmedInstruction.startsWith(",") || 
+                                 trimmedInstruction.startsWith("(") ||
+                                 /^\s/.test(instructionPart); // 先頭が空白
+      
+      // 最初の空白までの部分がオペコードとして認識される可能性があるかチェック
+      // オペコードは通常、短い英字の単語（例: ACB, RPL, WTOなど）
+      // 継続行の内容（例: DDNAME=SYSUT1,MACRF=IN）は、オペコードとしては長すぎる
+      const firstWord = firstSpaceIndex > 0 ? instructionPart.substring(0, firstSpaceIndex).trim() : trimmedInstruction;
+      const looksLikeOpcode = /^[A-Z]{1,8}$/i.test(firstWord); // 1-8文字の英字のみ
+      
+      // 個別の継続行を処理する場合、hasContinuationOperands が true で、
+      // 内容がオペランドから始まるか、オペコードとして認識されない場合は、すべてをオペランドとして扱う
+      // 継続行の場合、オペコードは存在しない（最初の行でのみオペコードが存在）
+      if (startsWithOperand || !looksLikeOpcode || trimmedInstruction.length === 0) {
+        // 個別の継続行の場合：すべてをオペランドとして扱う
+        operandsPart = instructionPart.trim();
+        opcodePart = "";
+        opcodeEndPos = 0;
+      } else {
+        // 結合された行全体の場合：最初の行のオペコードを抽出する
+        // ただし、hasContinuationOperands が true の場合、これは結合された行全体を処理する場合のみ
+        // 個別の継続行を処理する場合、ここには来ないはず
+        if (firstSpaceIndex > 0) {
+          // 最初の空白までの部分がオペコード
+          opcodePart = instructionPart.substring(0, firstSpaceIndex).trim();
+          operandsPart = instructionPart.substring(firstSpaceIndex).trim();
+          opcodeEndPos = firstSpaceIndex;
+        } else {
+          // 空白がない場合、すべてをオペランドとして扱う
+          operandsPart = instructionPart.trim();
+          opcodePart = "";
+          opcodeEndPos = 0;
+        }
+      }
+    }
+    
+    // 継続行がない場合、通常の処理を行う
+    if (!hasContinuationOperands) {
+      for (let i = 0; i < instructionPart.length; i++) {
+      const char = instructionPart[i];
+      
+      // 文字列開始/終了のチェック
+      if ((char === "'" || char === '"') && (i === 0 || instructionPart[i - 1] !== "\\")) {
+        if (!inString) {
+          inString = true;
+          stringChar = char;
+        } else if (char === stringChar) {
+          // 文字列終了（エスケープされたクォートのチェック）
+          if (i + 1 >= instructionPart.length || instructionPart[i + 1] !== stringChar) {
+            inString = false;
+            stringChar = "";
+          } else {
+            // エスケープされたクォート
+            i++; // 次の文字もスキップ
+          }
+        }
+        // オペコードが見つかっていない場合、オペコードに追加
+        if (opcodeEndPos < 0) {
+          opcodePart += char;
+        } else {
+          operandsPart += char;
+        }
+        continue;
+      }
+      
+      // 文字列内の場合は空白を無視（文字列の一部として扱う）
+      if (inString) {
+        if (opcodeEndPos < 0) {
+          opcodePart += char;
+        } else {
+          operandsPart += char;
+        }
+        continue;
+      }
+      
+      // 文字列外の空白でオペコードとオペランドを分離
+      if (/\s/.test(char)) {
+        if (opcodeEndPos < 0 && opcodePart.length > 0) {
+          // オペコードの終了位置を記録
+          opcodeEndPos = i;
+        }
+        // オペコードが見つかった後の空白はオペランドに含めない（オペランド開始の空白は除外）
+        if (opcodeEndPos >= 0 && operandsPart.length > 0) {
+          // 既にオペランドが始まっている場合は空白を追加（複数のオペランド間の空白）
+          operandsPart += char;
+        }
+        continue;
+      }
+      
+      // 非空白文字
+      if (opcodeEndPos < 0) {
+        opcodePart += char;
+      } else {
+        operandsPart += char;
+      }
+    }
+    }
+    
+    // 前後の空白を削除（継続行がある場合は既に処理済み）
+    if (!hasContinuationOperands) {
+      opcodePart = opcodePart.trim();
+      operandsPart = operandsPart.trim();
+    }
     
     // オペコードの位置を元の行で特定
     const opcodeIndex = originalPart.indexOf(opcodePart);
@@ -278,12 +462,48 @@ export function parseLine(line: string, lineNumber: number): AsmStatement {
         if (operandStartInOriginal >= 0) {
           // オペランドの終了位置を特定
           // オペランドは、空白が1つのみで区切られるが、空白が2つ以上続いた後はコメント
+          // シングルクォーテーションまたはダブルクォーテーションで囲まれた部分内の空白は無視する
           let operandEndInOriginal = operandStartInOriginal;
           let lastNonSpacePos = operandStartInOriginal;
           let consecutiveSpaces = 0;
+          let inString = false;
+          let stringChar = "";
           
           for (let i = operandStartInOriginal; i < originalPart.length; i++) {
-            if (/\s/.test(originalPart[i])) {
+            const char = originalPart[i];
+            
+            // 文字列開始/終了のチェック
+            if ((char === "'" || char === '"') && (i === 0 || originalPart[i - 1] !== "\\")) {
+              if (!inString) {
+                // 文字列開始
+                inString = true;
+                stringChar = char;
+              } else if (char === stringChar) {
+                // 文字列終了（エスケープされたクォートのチェック）
+                // 次の文字も同じクォートの場合はエスケープされたクォート
+                if (i + 1 >= originalPart.length || originalPart[i + 1] !== stringChar) {
+                  inString = false;
+                  stringChar = "";
+                } else {
+                  // エスケープされたクォートなのでスキップ
+                  i++; // 次の文字もスキップ
+                }
+              }
+              // 文字列内の非空白文字として扱う
+              consecutiveSpaces = 0;
+              lastNonSpacePos = i + 1;
+              operandEndInOriginal = i + 1;
+              continue;
+            }
+            
+            // 文字列内の場合は空白を無視
+            if (inString) {
+              lastNonSpacePos = i + 1;
+              operandEndInOriginal = i + 1;
+              continue;
+            }
+            
+            if (/\s/.test(char)) {
               consecutiveSpaces++;
               // 空白が2つ以上続いた場合、オペランドの終了とみなす
               if (consecutiveSpaces >= 2) {
@@ -512,10 +732,34 @@ export function parseLine(line: string, lineNumber: number): AsmStatement {
         const instTokens = tokenizeInstructionPart(instruction, instructionStart);
         tokens.push(...instTokens);
         
-        // オペコードとオペランドを抽出
-        const instructionParts = instruction.split(/\s+/, 2);
-        opcode = instructionParts[0];
-        operandsText = instructionParts[1];
+        // オペコードとオペランドを抽出（文字列内の空白を考慮）
+        // 既に設定された operandsPart がある場合はそれを使用、ない場合は分割する
+        // ただし、hasContinuationOperands が true の場合、継続行なのでオペコードは存在しない
+        if (hasContinuationOperands) {
+          // 継続行の場合、すべてをオペランドとして扱う
+          opcode = undefined;
+          operandsText = instruction.trim();
+        } else if (operandsPart) {
+          // operandsPart が instruction に含まれているか確認
+          const operandsInInstruction = instruction.indexOf(operandsPart);
+          if (operandsInInstruction >= 0) {
+            // operandsPart の開始位置からオペコードを抽出
+            const beforeOperands = instruction.substring(0, operandsInInstruction).trim();
+            const opcodeParts = beforeOperands.split(/\s+/);
+            opcode = opcodeParts[opcodeParts.length - 1] || opcodePart;
+            operandsText = operandsPart;
+          } else {
+            // operandsPart が instruction に含まれていない場合、文字列内の空白を考慮して分割
+            const splitResult = splitOpcodeAndOperands(instruction);
+            opcode = splitResult.opcode;
+            operandsText = splitResult.operands;
+          }
+        } else {
+          // operandsPart が設定されていない場合、文字列内の空白を考慮して分割
+          const splitResult = splitOpcodeAndOperands(instruction);
+          opcode = splitResult.opcode;
+          operandsText = splitResult.operands;
+        }
       }
       
       // コメントトークン（元の文字列位置を使用）
@@ -531,9 +775,26 @@ export function parseLine(line: string, lineNumber: number): AsmStatement {
       const instTokens = tokenizeInstructionPart(instructionPart, instructionStart);
       tokens.push(...instTokens);
       
-      const parts = instructionPart.split(/\s+/, 2);
-      opcode = parts[0];
-      operandsText = parts[1];
+      // オペコードとオペランドを抽出（文字列内の空白を考慮）
+      // 既に設定された operandsPart がある場合はそれを使用
+      if (operandsPart) {
+        // opcodePart は既に設定されているのでそれを使用
+        // ただし、hasContinuationOperands が true の場合、継続行なのでオペコードは存在しない
+        opcode = hasContinuationOperands ? undefined : opcodePart;
+        operandsText = operandsPart;
+      } else {
+        // operandsPart が設定されていない場合、文字列内の空白を考慮して分割
+        // ただし、hasContinuationOperands が true の場合、継続行なのでオペコードは存在しない
+        if (hasContinuationOperands) {
+          // 継続行の場合、すべてをオペランドとして扱う
+          opcode = undefined;
+          operandsText = instructionPart.trim();
+        } else {
+          const splitResult = splitOpcodeAndOperands(instructionPart);
+          opcode = splitResult.opcode;
+          operandsText = splitResult.operands;
+        }
+      }
     }
   } else if (isContinuation && line.length > 72) {
     // 継続行のみ（カラム72以降）
@@ -559,6 +820,82 @@ export function parseLine(line: string, lineNumber: number): AsmStatement {
     operandsText,
     comment,
     tokens,
+  };
+}
+
+/**
+ * 文字列内の空白を考慮してオペコードとオペランドを分割
+ */
+function splitOpcodeAndOperands(text: string): { opcode: string; operands: string } {
+  let opcode = "";
+  let operands = "";
+  let inString = false;
+  let stringChar = "";
+  let opcodeEndPos = -1;
+  
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    
+    // 文字列開始/終了のチェック
+    if ((char === "'" || char === '"') && (i === 0 || text[i - 1] !== "\\")) {
+      if (!inString) {
+        inString = true;
+        stringChar = char;
+      } else if (char === stringChar) {
+        // 文字列終了（エスケープされたクォートのチェック）
+        if (i + 1 >= text.length || text[i + 1] !== stringChar) {
+          inString = false;
+          stringChar = "";
+        } else {
+          // エスケープされたクォート
+          i++; // 次の文字もスキップ
+        }
+      }
+      // オペコードが見つかっていない場合、オペコードに追加
+      if (opcodeEndPos < 0) {
+        opcode += char;
+      } else {
+        operands += char;
+      }
+      continue;
+    }
+    
+    // 文字列内の場合は空白を無視（文字列の一部として扱う）
+    if (inString) {
+      if (opcodeEndPos < 0) {
+        opcode += char;
+      } else {
+        operands += char;
+      }
+      continue;
+    }
+    
+    // 文字列外の空白でオペコードとオペランドを分離
+    if (/\s/.test(char)) {
+      if (opcodeEndPos < 0 && opcode.length > 0) {
+        // オペコードの終了位置を記録
+        opcodeEndPos = i;
+      }
+      // オペコードが見つかった後の空白はオペランドに含めない（オペランド開始の空白は除外）
+      if (opcodeEndPos >= 0 && operands.length > 0) {
+        // 既にオペランドが始まっている場合は空白を追加（複数のオペランド間の空白）
+        operands += char;
+      }
+      continue;
+    }
+    
+    // 非空白文字
+    if (opcodeEndPos < 0) {
+      opcode += char;
+    } else {
+      operands += char;
+    }
+  }
+  
+  // 前後の空白を削除
+  return {
+    opcode: opcode.trim(),
+    operands: operands.trim(),
   };
 }
 
