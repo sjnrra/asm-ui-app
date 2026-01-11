@@ -1105,7 +1105,7 @@ function App() {
               border: "none",
               borderRadius: "3px",
               cursor: "pointer",
-              fontSize: "12px",
+              fontSize: "13px",
             }}
           >
             ファイル読み込み
@@ -1146,7 +1146,7 @@ function App() {
               ) : (
                 <div className="empty-message">
                   <p>解析結果がありません。ソースコードを入力してください。</p>
-                  <p style={{ fontSize: "12px", color: "#858585", marginTop: "8px" }}>
+                  <p style={{ fontSize: "13px", color: "#6a737d", marginTop: "8px" }}>
                     デバッグ: ソース行数 = {sourceText.split("\n").length}
                   </p>
                 </div>

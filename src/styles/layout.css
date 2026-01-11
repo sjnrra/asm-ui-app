@@ -4,6 +4,7 @@
   flex-direction: column;
   height: 100vh;
   width: 100vw;
+  background: #f5f5f5;
 }
 
 .app-header {
@@ -11,21 +12,21 @@
   justify-content: space-between;
   align-items: center;
   padding: 10px 20px;
-  background: #2d2d30;
-  color: #cccccc;
-  border-bottom: 1px solid #3e3e42;
+  background: #e7e7e7;
+  color: #24292e;
+  border-bottom: 1px solid #e1e4e8;
 }
 
 .app-header h1 {
   margin: 0;
-  font-size: 18px;
-  font-weight: 500;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .app-info {
   display: flex;
   gap: 15px;
-  font-size: 12px;
+  font-size: 13px;
   align-items: center;
 }
 
@@ -52,15 +53,20 @@
   overflow: hidden;
   min-height: 0;
   height: 100%;
+  gap: 16px;
+  padding: 16px;
+  box-sizing: border-box;
 }
 
 .left-pane {
   /* flex: 1; */
   display: flex;
   flex-direction: column;
-  /* border-right: 1px solid #3e3e42; */
+  /* border-right: 1px solid #e1e4e8; */
   overflow: hidden;
-  background: #1e1e1e;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .right-pane {
@@ -70,8 +76,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #252526;
-  border-left: 1px solid #3e3e42;
+  background: transparent;
   min-height: 0;
   flex-shrink: 0;
   height: 100%;
@@ -95,11 +100,6 @@
   width: 100%;
   overflow: hidden;
   align-items: flex-start;
-
-  /* display: flex; */
-  /* flex-direction: column; */
-  /* overflow: hidden; */
-  border-right: 1px solid #3e3e42
 }
 
 .editor-header {
@@ -107,10 +107,10 @@
   justify-content: space-between;
   align-items: center;
   padding: 8px 15px;
-  background: #2d2d30;
-  border-bottom: 1px solid #3e3e42;
-  font-size: 12px;
-  color: #cccccc;
+  background: #f6f8fa;
+  border-bottom: 1px solid #e1e4e8;
+  font-size: 13px;
+  color: #24292e;
 }
 
 .editor-title {
@@ -118,7 +118,42 @@
 }
 
 .editor-info {
-  color: #858585;
+  color: #6a737d;
+}
+
+.editor-container {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+}
+
+.editor-line-numbers {
+  width: 60px;
+  min-width: 60px;
+  padding: 15px 8px 15px 15px;
+  background: #f6f8fa;
+  border-right: 1px solid #e1e4e8;
+  overflow-y: auto;
+  overflow-x: hidden;
+  user-select: none;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #6a737d;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.editor-line-number {
+  padding: 0;
+  margin: 0;
+  height: 1.6em;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 }
 
 .editor {
@@ -128,8 +163,8 @@
   min-width: 100ch;
   padding: 15px;
   border: none;
-  background: #1e1e1e;
-  color: #d4d4d4;
+  background: #ffffff;
+  color: #24292e;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 14px;
   line-height: 1.6;
@@ -153,13 +188,16 @@
   align-items: stretch;
   flex-direction: row;
   justify-content: flex-start;
+  gap: 16px;
 }
 
 .panels-container {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-right: 1px solid #3e3e42;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .right-panels {
@@ -175,9 +213,12 @@
   min-height: 0;
   max-height: 100%;
   flex-grow:1;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   /* スクロールバーのスタイル */
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.1);
+  scrollbar-color: rgba(0, 0, 0, 0.2) rgba(0, 0, 0, 0.05);
 }
 
 .right-panels::-webkit-scrollbar {
@@ -186,28 +227,28 @@
 }
 
 .right-panels::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.05);
   border-radius: 6px;
 }
 
 .right-panels::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.2);
   border-radius: 6px;
-  border: 2px solid rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(0, 0, 0, 0.05);
 }
 
 .right-panels::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(0, 0, 0, 0.3);
 }
 
 .right-panels::-webkit-scrollbar-corner {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .empty-message {
   padding: 40px 20px;
   text-align: center;
-  color: #858585;
+  color: #6a737d;
 }
 
 .empty-message p {
@@ -221,8 +262,8 @@
 .label-panel {
   display: flex;
   flex-direction: column;
-  border-bottom: 1px solid #3e3e42;
-  background: #252526;
+  border-bottom: 1px solid #e1e4e8;
+  background: #f6f8fa;
   overflow: visible;
   flex-shrink: 0;
   width: 100%;
@@ -231,19 +272,19 @@
 /* パネルヘッダーの統一スタイル */
 .panel-header {
   width:100%;
-  font-size:14px;
+  font-size: 14px;
   padding: 10px 16px;
-  background: #2d2d30;
-  border-bottom: 1px solid #3e3e42;
+  background: #e9e9e9;
+  border-bottom: 1px solid #e1e4e8;
   margin: 0;
 }
 
 .panel-header h3 {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: inherit;
   margin: 0;
   font-size: 14px;
   font-weight: 600;
-  color: #cccccc;
+  color: #24292e;
   padding: 0;
   border-bottom: none;
 }
@@ -272,7 +313,7 @@
 }
 
 .empty-state {
-  color: #858585;
+  color: #6a737d;
   font-size: 12px;
   font-style: italic;
   margin: 10px 0;
@@ -283,6 +324,7 @@
 .operand-content,
 .label-content {
   font-size: 13px;
+  line-height: 1.6;
 }
 
 .detail-section {
@@ -296,14 +338,15 @@
 }
 
 .detail-section label {
-  font-size: 11px;
-  color: #858585;
+  font-size: 12px;
+  color: #586069;
   text-transform: uppercase;
   font-weight: 500;
+  letter-spacing: 0.5px;
 }
 
 .detail-section span {
-  color: #cccccc;
+  color: #24292e;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   word-wrap: break-word;
   word-break: break-word;
@@ -312,16 +355,16 @@
 }
 
 .label-value {
-  color: #4ec9b0;
+  color: #005cc5;
 }
 
 .opcode-value {
-  color: #569cd6;
+  color: #032f62;
   font-weight: 600;
 }
 
 .operands-value {
-  color: #9cdcfe;
+  color: #24292e;
   word-wrap: break-word;
   word-break: break-word;
   overflow-wrap: break-word;
@@ -329,7 +372,7 @@
 }
 
 .comment-value {
-  color: #6a9955;
+  color: #6a737d;
   font-style: italic;
   word-wrap: break-word;
   word-break: break-word;
@@ -338,7 +381,7 @@
 }
 
 .source-file-value {
-  color: #4ec9b0;
+  color: #005cc5;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 12px;
   word-wrap: break-word;
@@ -348,7 +391,7 @@
 }
 
 .macro-expanded-value {
-  color: #c586c0;
+  color: #6f42c1;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 12px;
   word-wrap: break-word;
@@ -358,7 +401,7 @@
 }
 
 .copy-file-value {
-  color: #4ec9b0;
+  color: #005cc5;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 12px;
   font-weight: 600;
@@ -371,13 +414,13 @@
 .dependency-files-section {
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .dependency-files-section {
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .dependency-files-list {
@@ -389,10 +432,10 @@
 
 .dependency-file-item {
   padding: 8px 10px;
-  background: rgba(78, 201, 176, 0.15);
-  border: 1px solid rgba(78, 201, 176, 0.4);
+  background: rgba(0, 92, 197, 0.08);
+  border: 1px solid rgba(0, 92, 197, 0.2);
   border-radius: 4px;
-  color: #4ec9b0;
+  color: #005cc5;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 12px;
   font-weight: 500;
@@ -401,22 +444,22 @@
 }
 
 .dependency-file-item:hover {
-  background: rgba(78, 201, 176, 0.25);
-  border-color: rgba(78, 201, 176, 0.6);
+  background: rgba(0, 92, 197, 0.12);
+  border-color: rgba(0, 92, 197, 0.4);
 }
 
 /* 内部シンボル参照セクション */
 .internal-symbols-section {
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 /* 外部シンボル参照セクション */
 .external-symbols-section {
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 /* シンボルリスト（内部・外部共通） */
@@ -436,24 +479,24 @@
 
 /* 内部シンボルアイテム */
 .internal-symbols-section .symbol-item {
-  background: rgba(78, 201, 176, 0.15);
-  border: 1px solid rgba(78, 201, 176, 0.4);
+  background: rgba(0, 92, 197, 0.08);
+  border: 1px solid rgba(0, 92, 197, 0.2);
 }
 
 .internal-symbols-section .symbol-item:hover {
-  background: rgba(78, 201, 176, 0.25);
-  border-color: rgba(78, 201, 176, 0.6);
+  background: rgba(0, 92, 197, 0.12);
+  border-color: rgba(0, 92, 197, 0.4);
 }
 
 /* 外部シンボルアイテム */
 .external-symbols-section .symbol-item {
-  background: rgba(86, 156, 214, 0.15);
-  border: 1px solid rgba(86, 156, 214, 0.4);
+  background: rgba(3, 47, 98, 0.08);
+  border: 1px solid rgba(3, 47, 98, 0.2);
 }
 
 .external-symbols-section .symbol-item:hover {
-  background: rgba(86, 156, 214, 0.25);
-  border-color: rgba(86, 156, 214, 0.6);
+  background: rgba(3, 47, 98, 0.12);
+  border-color: rgba(3, 47, 98, 0.4);
 }
 
 /* 後方互換性のため、旧クラス名も保持 */
@@ -466,15 +509,15 @@
 
 .external-symbol-item {
   padding: 10px;
-  background: rgba(86, 156, 214, 0.15);
-  border: 1px solid rgba(86, 156, 214, 0.4);
+  background: rgba(3, 47, 98, 0.08);
+  border: 1px solid rgba(3, 47, 98, 0.2);
   border-radius: 4px;
   transition: background-color 0.2s, border-color 0.2s;
 }
 
 .external-symbol-item:hover {
-  background: rgba(86, 156, 214, 0.25);
-  border-color: rgba(86, 156, 214, 0.6);
+  background: rgba(3, 47, 98, 0.12);
+  border-color: rgba(3, 47, 98, 0.4);
 }
 
 /* シンボルヘッダー（内部・外部共通） */
@@ -496,18 +539,18 @@
 
 /* シンボル名（内部・外部共通） */
 .symbol-name {
-  color: #569cd6;
+  color: #032f62;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 13px;
   font-weight: 600;
 }
 
 .internal-symbols-section .symbol-name {
-  color: #4ec9b0;
+  color: #005cc5;
 }
 
 .external-symbol-name {
-  color: #569cd6;
+  color: #032f62;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 13px;
   font-weight: 600;
@@ -515,14 +558,14 @@
 
 /* シンボルタイプ（内部・外部共通） */
 .symbol-type {
-  color: #9cdcfe;
+  color: #24292e;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 11px;
   font-style: italic;
 }
 
 .external-symbol-type {
-  color: #9cdcfe;
+  color: #24292e;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 11px;
   font-style: italic;
@@ -530,14 +573,14 @@
 
 /* シンボルファイル（内部・外部共通） */
 .symbol-file {
-  color: #4ec9b0;
+  color: #005cc5;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 11px;
   cursor: help;
 }
 
 .external-symbol-file {
-  color: #4ec9b0;
+  color: #005cc5;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 11px;
   cursor: help;
@@ -550,7 +593,7 @@
   gap: 8px;
   margin-top: 6px;
   padding-top: 6px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .external-symbol-definition {
@@ -559,15 +602,15 @@
   gap: 8px;
   margin-top: 6px;
   padding-top: 6px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .symbol-definition code,
 .external-symbol-definition code {
-  color: #cccccc;
+  color: #24292e;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 11px;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.05);
   padding: 4px 6px;
   border-radius: 3px;
   flex: 1;
@@ -578,21 +621,21 @@
 
 /* シンボル行番号（内部・外部共通） */
 .symbol-line {
-  color: #858585;
-  font-size: 10px;
+  color: #6a737d;
+  font-size: 11px;
   white-space: nowrap;
 }
 
 .external-symbol-line {
-  color: #858585;
-  font-size: 10px;
+  color: #6a737d;
+  font-size: 11px;
   white-space: nowrap;
 }
 
 .macro-definition-section {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .macro-definition-content {
@@ -609,12 +652,12 @@
 }
 
 .macro-name strong {
-  color: #569cd6;
+  color: #032f62;
   font-weight: 600;
 }
 
 .macro-source-file {
-  color: #4ec9b0;
+  color: #005cc5;
   font-size: 11px;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
 }
@@ -627,7 +670,7 @@
 
 .macro-parameters label {
   font-size: 11px;
-  color: #858585;
+  color: #586069;
   font-weight: 500;
 }
 
@@ -640,12 +683,12 @@
 .macro-param {
   display: inline-block;
   padding: 2px 6px;
-  background: rgba(78, 201, 176, 0.15);
-  color: #4ec9b0;
+  background: rgba(0, 92, 197, 0.08);
+  color: #005cc5;
   border-radius: 3px;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 11px;
-  border: 1px solid rgba(78, 201, 176, 0.3);
+  border: 1px solid rgba(0, 92, 197, 0.2);
 }
 
 .macro-body {
@@ -656,13 +699,13 @@
 
 .macro-body label {
   font-size: 11px;
-  color: #858585;
+  color: #586069;
   font-weight: 500;
 }
 
 .macro-body-content {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 4px;
   padding: 8px;
   max-height: 200px;
@@ -680,7 +723,7 @@
 
 .macro-body-line {
   padding: 2px 0;
-  color: #d4d4d4;
+  color: #24292e;
 }
 
 .macro-body-line code {
@@ -697,10 +740,10 @@
 }
 
 .macro-meta {
-  color: #858585;
-  font-size: 10px;
+  color: #6a737d;
+  font-size: 11px;
   padding-top: 4px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .operands-list {
@@ -711,7 +754,7 @@
 }
 
 .operand-index {
-  color: #858585;
+  color: #6a737d;
   font-size: 11px;
   font-weight: 600;
   margin-right: 6px;
@@ -719,7 +762,8 @@
 
 .operand-item {
   padding: 8px;
-  background: #1e1e1e;
+  background: #ffffff;
+  border: 1px solid #e1e4e8;
   border-radius: 4px;
   display: flex;
   flex-direction: column;
@@ -728,17 +772,17 @@
 }
 
 .operand-type {
-  color: #c586c0;
+  color: #6f42c1;
   font-weight: 500;
 }
 
 .operand-value {
-  color: #9cdcfe;
+  color: #24292e;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
 }
 
 .operand-detail {
-  color: #858585;
+  color: #6a737d;
   font-size: 11px;
 }
 
@@ -749,13 +793,13 @@
 .instruction-section label {
   display: block;
   font-size: 11px;
-  color: #858585;
+  color: #586069;
   text-transform: uppercase;
   margin-bottom: 4px;
 }
 
 .description-text {
-  color: #cccccc;
+  color: #24292e;
   font-size: 13px;
   line-height: 1.5;
   margin-top: 4px;
@@ -767,29 +811,29 @@
 }
 
 .mnemonic {
-  color: #569cd6;
+  color: #032f62;
   font-weight: 600;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
 }
 
 .format {
-  color: #4ec9b0;
+  color: #005cc5;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
 }
 
 .addressing-mode {
-  color: #c586c0;
+  color: #6f42c1;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
 }
 
 .instruction-note {
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid #3e3e42;
+  border-top: 1px solid #e1e4e8;
 }
 
 .instruction-note small {
-  color: #858585;
+  color: #6a737d;
   font-style: italic;
 }
 
@@ -797,12 +841,12 @@
   display: inline-block;
   margin-left: 6px;
   padding: 2px 6px;
-  background: rgba(197, 134, 192, 0.2);
-  color: #c586c0;
+  background: rgba(111, 66, 193, 0.15);
+  color: #6f42c1;
   border-radius: 3px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
-  border: 1px solid rgba(197, 134, 192, 0.4);
+  border: 1px solid rgba(111, 66, 193, 0.3);
 }
 
 .macro-info {
@@ -812,13 +856,13 @@
 }
 
 .macro-summary {
-  color: #9cdcfe;
+  color: #24292e;
   font-size: 12px;
   line-height: 1.6;
 }
 
 .macro-source {
-  color: #4ec9b0;
+  color: #005cc5;
   font-size: 11px;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
 }
@@ -830,18 +874,18 @@
 }
 
 .macro-body-preview small {
-  color: #858585;
-  font-size: 10px;
+  color: #586069;
+  font-size: 11px;
   font-weight: 500;
 }
 
 .macro-preview-content {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 4px;
   padding: 6px;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.5;
   max-height: 120px;
   overflow-y: auto;
@@ -855,7 +899,7 @@
 
 .macro-preview-line {
   padding: 1px 0;
-  color: #d4d4d4;
+  color: #24292e;
 }
 
 .macro-preview-line code {
@@ -872,23 +916,23 @@
 }
 
 .macro-preview-more {
-  color: #858585;
+  color: #6a737d;
   font-style: italic;
   padding-top: 4px;
   margin-top: 4px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .macro-link {
-  color: #858585;
-  font-size: 10px;
+  color: #6a737d;
+  font-size: 11px;
   font-style: italic;
   padding-top: 4px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .macro-call-value {
-  color: #c586c0;
+  color: #6f42c1;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 12px;
   font-weight: 600;
@@ -900,18 +944,18 @@
   gap: 6px;
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  border-top: 1px solid rgba(0, 0, 0, 0.15);
 }
 
 .macro-expansion label {
   font-size: 11px;
-  color: #858585;
+  color: #586069;
   font-weight: 500;
 }
 
 .macro-expansion-content {
-  background: rgba(197, 134, 192, 0.1);
-  border: 1px solid rgba(197, 134, 192, 0.3);
+  background: rgba(111, 66, 193, 0.08);
+  border: 1px solid rgba(111, 66, 193, 0.2);
   border-radius: 4px;
   padding: 8px;
   max-height: 250px;
@@ -929,7 +973,7 @@
 
 .macro-expansion-line {
   padding: 2px 0;
-  color: #d4d4d4;
+  color: #24292e;
 }
 
 .macro-expansion-line code {
@@ -948,7 +992,8 @@
 .operand-detail {
   margin-bottom: 12px;
   padding: 10px;
-  background: #1e1e1e;
+  background: #ffffff;
+  border: 1px solid #e1e4e8;
   border-radius: 4px;
 }
 
@@ -958,11 +1003,11 @@
   align-items: center;
   margin-bottom: 8px;
   padding-bottom: 6px;
-  border-bottom: 1px solid #3e3e42;
+  border-bottom: 1px solid #e1e4e8;
 }
 
 .operand-index {
-  color: #858585;
+  color: #6a737d;
   font-size: 11px;
 }
 
@@ -971,7 +1016,7 @@
   color: white;
   padding: 2px 6px;
   border-radius: 3px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   text-transform: uppercase;
 }
@@ -991,14 +1036,14 @@
 
 .operand-value label,
 .operand-property label {
-  font-size: 10px;
-  color: #858585;
+  font-size: 11px;
+  color: #586069;
   text-transform: uppercase;
 }
 
 .operand-value code,
 .operand-property code {
-  color: #9cdcfe;
+  color: #24292e;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 12px;
   background: transparent;
@@ -1013,22 +1058,22 @@
 
 .symbol-item {
   padding: 10px;
-  background: #1e1e1e;
+  background: #ffffff;
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.2s;
   margin-bottom: 8px;
-  border: 1px solid #3e3e42;
+  border: 1px solid #e1e4e8;
 }
 
 .symbol-item:hover {
-  background: #2d2d30;
-  border-color: #007acc;
+  background: #f6f8fa;
+  border-color: #0366d6;
 }
 
 .symbol-item.selected {
-  background: #094771;
-  border-left: 3px solid #007acc;
+  background: #c8e1ff;
+  border-left: 3px solid #0366d6;
 }
 
 .symbol-header {
@@ -1039,7 +1084,7 @@
 }
 
 .symbol-name {
-  color: #4ec9b0;
+  color: #005cc5;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-weight: 600;
   font-size: 13px;
@@ -1048,7 +1093,7 @@
 .symbol-type-badge {
   padding: 2px 6px;
   border-radius: 3px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   text-transform: uppercase;
 }
@@ -1082,13 +1127,13 @@
 }
 
 .symbol-data-type-label {
-  color: #858585;
-  font-size: 10px;
+  color: #6a737d;
+  font-size: 11px;
   margin-right: 6px;
 }
 
 .symbol-data-type-value {
-  color: #6495ed;
+  color: #005cc5;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   word-break: break-word;
 }
@@ -1102,13 +1147,13 @@
 }
 
 .symbol-length-label {
-  color: #858585;
-  font-size: 10px;
+  color: #6a737d;
+  font-size: 11px;
   margin-right: 6px;
 }
 
 .symbol-length-value {
-  color: #4ec9b0;
+  color: #005cc5;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-weight: 500;
 }
@@ -1116,19 +1161,19 @@
 .symbol-details {
   margin: 6px 0;
   padding: 6px;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.05);
   border-radius: 3px;
 }
 
 .symbol-value-label {
-  color: #858585;
-  font-size: 10px;
+  color: #6a737d;
+  font-size: 11px;
   text-transform: uppercase;
   margin-bottom: 2px;
 }
 
 .symbol-value {
-  color: #b5cea8;
+  color: #24292e;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 12px;
   word-break: break-word;
@@ -1141,19 +1186,19 @@
   align-items: center;
   margin-top: 4px;
   padding-top: 4px;
-  border-top: 1px solid #3e3e42;
+  border-top: 1px solid #e1e4e8;
   flex-wrap: wrap;
   gap: 4px;
 }
 
 .symbol-line {
-  color: #858585;
-  font-size: 10px;
+  color: #6a737d;
+  font-size: 11px;
 }
 
 .symbol-source-file {
-  color: #4ec9b0;
-  font-size: 10px;
+  color: #005cc5;
+  font-size: 11px;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
 }
 
@@ -1272,8 +1317,8 @@
 .files-panel {
   display: flex;
   flex-direction: column;
-  background: #252526;
-  border-bottom: 1px solid #3e3e42;
+  background: #ffffff;
+  border-bottom: 1px solid #e1e4e8;
   overflow: visible;
   flex-shrink: 0;
   min-height: 200px;
@@ -1298,16 +1343,16 @@
 
 .file-item {
   padding: 10px;
-  background: #1e1e1e;
-  border: 1px solid #3e3e42;
+  background: #f6f8fa;
+  border: 1px solid #e1e4e8;
   border-radius: 4px;
   transition: background-color 0.2s, border-color 0.2s;
   cursor: default;
 }
 
 .file-item:hover {
-  background: #2a2a2a;
-  border-color: #4ec9b0;
+  background: #f0f3f6;
+  border-color: #005cc5;
 }
 
 .file-name {
@@ -1323,7 +1368,7 @@
 }
 
 .file-name-text {
-  color: #4ec9b0;
+  color: #005cc5;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 13px;
   font-weight: 500;
@@ -1336,17 +1381,17 @@
   gap: 4px;
   margin-top: 6px;
   padding-top: 6px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .file-size {
-  color: #858585;
+  color: #6a737d;
   font-size: 11px;
 }
 
 .file-path {
   color: #6a737d;
-  font-size: 10px;
+  font-size: 11px;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   word-break: break-all;
 }

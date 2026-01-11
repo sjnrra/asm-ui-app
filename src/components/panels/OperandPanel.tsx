@@ -322,8 +322,8 @@ export const OperandPanel = ({ statement, context, fileManager, statements }: Op
 
           {operand.register && (
             <div className="operand-property">
-              <label>値:</label>
-              <code>未実装</code>
+              <label>レジスタ:</label>
+              <code>{operand.register}</code>
             </div>
           )}
 

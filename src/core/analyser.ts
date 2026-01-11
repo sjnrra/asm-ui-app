@@ -243,8 +243,8 @@ export class AssemblyAnalyzer {
       const trimmedPart = part.trim();
       if (!trimmedPart || trimmedPart === ",") continue;
 
-      // レジスタ（R0-R15, GR0-GR15など）
-      if (/^R\d+$|^GR\d+$/i.test(trimmedPart)) {
+      // レジスタ（R0-R15, GR0-GR15, RA-RFなど）
+      if (/^R\d+$|^GR\d+$|^R[ABCDEF]$/i.test(trimmedPart)) {
         operands.push({
           type: "register",
           value: trimmedPart,

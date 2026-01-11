@@ -1,5 +1,5 @@
 // src/components/EditorPane/EditorPane.tsx
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface EditorPaneProps {
   text: string;
@@ -9,6 +9,8 @@ interface EditorPaneProps {
 
 export const EditorPane = ({ text, setText, onCursorChange }: EditorPaneProps) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const lineNumbersRef = useRef<HTMLDivElement>(null);
+  const [lineCount, setLineCount] = useState(1);
 
   const handleCursor = () => {
     const textarea = textareaRef.current;
@@ -21,6 +23,21 @@ export const EditorPane = ({ text, setText, onCursorChange }: EditorPaneProps) =
     onCursorChange({ line, column });
   };
 
+  // 行数を計算
+  useEffect(() => {
+    const lines = text.split("\n");
+    setLineCount(lines.length);
+  }, [text]);
+
+  // スクロール同期
+  const handleScroll = () => {
+    const textarea = textareaRef.current;
+    const lineNumbers = lineNumbersRef.current;
+    if (textarea && lineNumbers) {
+      lineNumbers.scrollTop = textarea.scrollTop;
+    }
+  };
+
   // フォントを等幅に設定（z/OSの固定カラム形式に対応）
   useEffect(() => {
     if (textareaRef.current) {
@@ -28,28 +45,42 @@ export const EditorPane = ({ text, setText, onCursorChange }: EditorPaneProps) =
       textareaRef.current.style.fontSize = "14px";
       textareaRef.current.style.lineHeight = "1.6";
     }
+    if (lineNumbersRef.current) {
+      lineNumbersRef.current.style.fontFamily = "'Consolas', 'Monaco', 'Courier New', monospace";
+      lineNumbersRef.current.style.fontSize = "14px";
+      lineNumbersRef.current.style.lineHeight = "1.6";
+    }
   }, []);
+
+  // 行番号を生成
+  const lineNumbers = Array.from({ length: lineCount }, (_, i) => i + 1);
 
   return (
     <div className="editor-pane">
-      {/* <div className="editor-header">
-        <span className="editor-title">アセンブリソース</span>
-        <span className="editor-info">固定カラム形式（1-80カラム）</span>
-      </div> */}
       <div className="panel-header">
         <h3>アセンブリソース入力エディタ</h3>
       </div>
-      <textarea
-        ref={textareaRef}
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onClick={handleCursor}
-        onKeyUp={handleCursor}
-        onKeyDown={handleCursor}
-        className="editor"
-        placeholder="z/OSアセンブラコードを入力..."
-        spellCheck={false}
-      />
+      <div className="editor-container">
+        <div className="editor-line-numbers" ref={lineNumbersRef}>
+          {lineNumbers.map((num) => (
+            <div key={num} className="editor-line-number">
+              {num}
+            </div>
+          ))}
+        </div>
+        <textarea
+          ref={textareaRef}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onClick={handleCursor}
+          onKeyUp={handleCursor}
+          onKeyDown={handleCursor}
+          onScroll={handleScroll}
+          className="editor"
+          placeholder="z/OSアセンブラコードを入力..."
+          spellCheck={false}
+        />
+      </div>
     </div>
   );
 };

@@ -1066,8 +1066,9 @@ function tokenizeInstructionPart(text: string, columnOffset: number): AsmToken[]
  * トークンタイプを判定してトークンを作成
  */
 function createToken(text: string, start: number, end: number): AsmToken {
-  // レジスタ（R0-R15, GR0-GR15など、または単独のR1, R2など）
-  if (/^R\d+$|^GR\d+$/i.test(text)) {
+  // レジスタ（R0-R15, GR0-GR15, RA-RFなど）
+  // RA-RFは通常EQU定義されたレジスタ名（例：RA EQU 1, RB EQU 2など）
+  if (/^R\d+$|^GR\d+$|^R[ABCDEF]$/i.test(text)) {
     return {
       type: TokenType.REGISTER,
       text,
