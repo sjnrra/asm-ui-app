@@ -10,7 +10,7 @@ export const DetailPanel = ({ statement }: DetailPanelProps) => {
     return (
       <div className="detail-panel">
         <div className="panel-header">
-          <h3>詳細情報</h3>
+          <h3>基本情報</h3>
         </div>
         <p className="empty-state">行を選択してください</p>
       </div>
@@ -20,7 +20,7 @@ export const DetailPanel = ({ statement }: DetailPanelProps) => {
   return (
     <div className="detail-panel">
       <div className="panel-header">
-        <h3>詳細情報</h3>
+        <h3>基本情報</h3>
       </div>
       <div className="detail-content">
         <div className="detail-section">
@@ -69,7 +69,7 @@ export const DetailPanel = ({ statement }: DetailPanelProps) => {
                 </span>
               ) : statement.continuationCount !== undefined && statement.continuationCount > 0 ? (
                 <span title={`この行は${statement.continuationCount}行の継続行を持っています`}>
-                  ✓ 継続行あり（{statement.continuationCount}行続く）
+                   {statement.continuationCount}行継続
                 </span>
               ) : null}
             </span>

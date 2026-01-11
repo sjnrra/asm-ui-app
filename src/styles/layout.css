@@ -88,6 +88,7 @@
 }
 
 .editor-pane {
+  font-size: 14px;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -224,6 +225,8 @@
 
 /* パネルヘッダーの統一スタイル */
 .panel-header {
+  width:100%;
+  font-size:14px;
   padding: 10px 16px;
   background: #2d2d30;
   border-bottom: 1px solid #3e3e42;

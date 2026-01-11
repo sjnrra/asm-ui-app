@@ -32,9 +32,12 @@ export const EditorPane = ({ text, setText, onCursorChange }: EditorPaneProps) =
 
   return (
     <div className="editor-pane">
-      <div className="editor-header">
+      {/* <div className="editor-header">
         <span className="editor-title">アセンブリソース</span>
         <span className="editor-info">固定カラム形式（1-80カラム）</span>
+      </div> */}
+      <div className="panel-header">
+        <h3>アセンブリソース入力エディタ</h3>
       </div>
       <textarea
         ref={textareaRef}

@@ -64,11 +64,18 @@ export const HighlightedView = ({
             }
           }
           
+          // 淡く表示する条件の判定
+          const isFaded = 
+            (stmt.opcode?.toUpperCase() === "DS" && stmt.operandsText?.trim().toUpperCase() === "0H") ||
+            stmt.opcode?.toUpperCase() === "CSECT" ||
+            stmt.opcode?.toUpperCase() === "DSECT";
+          
           const lineClassNames = [
             "asm-line",
             selectedLineNumber === stmt.lineNumber ? "selected" : "",
             isExternal ? "external-source" : "",
             isMacroCall ? "macro-call" : "",
+            isFaded ? "faded-line" : "",
           ].filter(Boolean).join(" ");
           
           return (
@@ -105,87 +112,50 @@ export const HighlightedView = ({
                   return <span className="tok-whitespace">{rawText}</span>;
                 }
                 
-                // 空白トークン以外のトークンを取得してソート
-                const nonWhitespaceTokens = stmt.tokens
-                  .filter((t) => t.type !== TokenType.WHITESPACE && t.columnStart < 80 && t.text.trim().length > 0)
+                // すべてのトークン（コメントを含む）を位置順にソート
+                const allTokens = stmt.tokens
+                  .filter((t) => t.columnStart < 80)
                   .sort((a, b) => a.columnStart - b.columnStart);
                 
                 // rawTextを順番に処理し、トークンを順番に配置
                 const elements: (ReactElement | null)[] = [];
                 let currentPos = 0;
-                let searchStart = 0; // rawText内での検索開始位置
                 
-                for (let i = 0; i < nonWhitespaceTokens.length; i++) {
-                  const token = nonWhitespaceTokens[i];
-                  const tokenText = token.text.trim();
+                for (let i = 0; i < allTokens.length; i++) {
+                  const token = allTokens[i];
                   
-                  // 現在の位置からトークンのテキストをrawText内で探す
-                  const tokenPosInRaw = rawText.indexOf(tokenText, searchStart);
+                  // 現在の位置からトークンの開始位置までの空白を追加
+                  if (token.columnStart > currentPos) {
+                    const whitespaceText = rawText.substring(currentPos, token.columnStart);
+                    if (whitespaceText.length > 0) {
+                      elements.push(
+                        <span
+                          key={`whitespace-${currentPos}-${i}`}
+                          className="tok-whitespace"
+                        >
+                          {whitespaceText}
+                        </span>
+                      );
+                    }
+                  }
                   
-                  if (tokenPosInRaw >= 0 && tokenPosInRaw < 80) {
-                    // トークンの前に空白がある場合、rawTextから直接取得
-                    if (tokenPosInRaw > currentPos) {
-                      const whitespaceText = rawText.substring(currentPos, tokenPosInRaw);
-                      if (whitespaceText.length > 0) {
-                        elements.push(
-                          <span
-                            key={`whitespace-${currentPos}`}
-                            className="tok-whitespace"
-                          >
-                            {whitespaceText}
-                          </span>
-                        );
-                      }
-                    }
-                    
-                    // トークンを表示（元のrawTextの該当部分を使用して正確なテキストを保持）
-                    const actualTokenText = rawText.substring(tokenPosInRaw, tokenPosInRaw + tokenText.length);
-                    elements.push(
-                      <span
-                        key={`token-${tokenPosInRaw}-${i}`}
-                        className={getTokenClassName(token.type)}
-                        title={token.type}
-                      >
-                        {actualTokenText}
-                      </span>
-                    );
-                    
-                    currentPos = tokenPosInRaw + tokenText.length;
-                    searchStart = currentPos;
-                  } else {
-                    // トークンが見つからない場合、位置情報を使用（フォールバック）
-                    const tokenStart = Math.max(token.columnStart, currentPos);
-                    const tokenEnd = Math.min(token.columnEnd, rawText.length, 80);
-                    
-                    if (tokenStart > currentPos) {
-                      const whitespaceText = rawText.substring(currentPos, tokenStart);
-                      if (whitespaceText.length > 0) {
-                        elements.push(
-                          <span
-                            key={`whitespace-${currentPos}`}
-                            className="tok-whitespace"
-                          >
-                            {whitespaceText}
-                          </span>
-                        );
-                      }
-                    }
-                    
-                    if (tokenStart < tokenEnd) {
-                      const tokenTextFromRaw = rawText.substring(tokenStart, tokenEnd);
-                      if (tokenTextFromRaw.trim().length > 0) {
-                        elements.push(
-                          <span
-                            key={`token-${tokenStart}-${i}`}
-                            className={getTokenClassName(token.type)}
-                            title={token.type}
-                          >
-                            {tokenTextFromRaw}
-                          </span>
-                        );
-                        currentPos = tokenEnd;
-                        searchStart = currentPos;
-                      }
+                  // トークンのテキストをrawTextから取得（位置情報を使用）
+                  const tokenEnd = Math.min(token.columnEnd, rawText.length, 80);
+                  const tokenStart = Math.max(token.columnStart, currentPos);
+                  
+                  if (tokenStart < tokenEnd) {
+                    const tokenText = rawText.substring(tokenStart, tokenEnd);
+                    if (tokenText.length > 0 || token.type === TokenType.WHITESPACE) {
+                      elements.push(
+                        <span
+                          key={`token-${tokenStart}-${i}`}
+                          className={getTokenClassName(token.type)}
+                          title={token.type}
+                        >
+                          {tokenText}
+                        </span>
+                      );
+                      currentPos = tokenEnd;
                     }
                   }
                 }
