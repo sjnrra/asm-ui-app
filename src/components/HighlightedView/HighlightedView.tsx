@@ -68,7 +68,8 @@ export const HighlightedView = ({
           const isFaded = 
             (stmt.opcode?.toUpperCase() === "DS" && stmt.operandsText?.trim().toUpperCase() === "0H") ||
             stmt.opcode?.toUpperCase() === "CSECT" ||
-            stmt.opcode?.toUpperCase() === "DSECT";
+            stmt.opcode?.toUpperCase() === "DSECT" ||
+            stmt.opcode?.toUpperCase() === "USING";
           
           const lineClassNames = [
             "asm-line",
