@@ -96,7 +96,167 @@ export const HighlightedView = ({
               </span>
               <span className="line-content">
               {(() => {
-                // rawTextを直接使用して、元のテキスト内容を完全に保持
+                // 継続行の場合、operandsTextを使用してハイライト表示
+                if (stmt.isContinuation && stmt.operandsText && stmt.operandsText.trim().length > 0) {
+                  const rawText = stmt.rawText.substring(0, 80); // 80カラムまで
+                  
+                  // operandsTextを基にトークンを生成
+                  // rawText内でoperandsTextの開始位置を探す
+                  const operandsTextTrimmed = stmt.operandsText.trim();
+                  const firstNonSpaceInRawText = rawText.search(/\S/);
+                  
+                  // rawTextの最初の非空白文字から始まる部分を使用
+                  // 継続行の場合、カラム1-71がオペランド部分
+                  const operandsStartPos = firstNonSpaceInRawText >= 0 ? firstNonSpaceInRawText : 0;
+                  
+                  // operandsTextを=や,で分割してトークン化
+                  const elements: (ReactElement | null)[] = [];
+                  let currentPos = 0;
+                  
+                  // operandsTextの前の部分（空白など）を追加
+                  if (operandsStartPos > 0) {
+                    const beforeOperands = rawText.substring(0, operandsStartPos);
+                    if (beforeOperands.length > 0) {
+                      elements.push(
+                        <span key="before-operands" className="tok-whitespace">
+                          {beforeOperands}
+                        </span>
+                      );
+                      currentPos = operandsStartPos;
+                    }
+                  }
+                  
+                  // operandsTextをトークン化
+                  // =や,で分割しつつ、括弧内の=や,は考慮しない
+                  const operandsText = stmt.operandsText.trim();
+                  // rawTextの最初の非空白文字から始まる部分を使用（継続行は通常カラム1から始まる）
+                  const rawTextFromFirstNonSpace = rawText.substring(operandsStartPos);
+                  let depth = 0;
+                  let inString = false;
+                  let stringChar = '';
+                  let currentToken = '';
+                  let tokenStart = 0;
+                  let tokenStartInRawText = operandsStartPos;
+                  
+                  // operandsTextを基にトークン化（rawTextの位置に適用）
+                  for (let i = 0; i < operandsText.length; i++) {
+                    const char = operandsText[i];
+                    const posInRawText = operandsStartPos + i;
+                    
+                    // 文字列内のチェック
+                    if ((char === "'" || char === '"') && (i === 0 || operandsText[i - 1] !== "\\")) {
+                      if (!inString) {
+                        inString = true;
+                        stringChar = char;
+                      } else if (char === stringChar) {
+                        if (i + 1 >= operandsText.length || operandsText[i + 1] !== stringChar) {
+                          inString = false;
+                          stringChar = '';
+                        } else {
+                          i++; // エスケープされたクォート
+                        }
+                      }
+                      if (currentToken === '') {
+                        tokenStart = i;
+                        tokenStartInRawText = posInRawText;
+                      }
+                      currentToken += char;
+                      continue;
+                    }
+                    
+                    if (inString) {
+                      currentToken += char;
+                      continue;
+                    }
+                    
+                    // 括弧の深さを追跡
+                    if (char === '(') {
+                      depth++;
+                      if (currentToken === '') {
+                        tokenStart = i;
+                        tokenStartInRawText = posInRawText;
+                      }
+                      currentToken += char;
+                      continue;
+                    } else if (char === ')') {
+                      depth--;
+                      currentToken += char;
+                      continue;
+                    }
+                    
+                    // デリミタ（=や,）の処理（括弧外のみ）
+                    if ((char === '=' || char === ',') && depth === 0) {
+                      // 現在のトークンを確定
+                      if (currentToken.trim().length > 0) {
+                        const tokenType = char === '=' ? TokenType.SYMBOL : TokenType.SYMBOL;
+                        elements.push(
+                          <span
+                            key={`token-${tokenStartInRawText}`}
+                            className={getTokenClassName(tokenType)}
+                          >
+                            {currentToken.trim()}
+                          </span>
+                        );
+                        currentPos = tokenStartInRawText + currentToken.trim().length;
+                      }
+                      
+                      // デリミタを追加
+                      elements.push(
+                        <span
+                          key={`delim-${posInRawText}`}
+                          className={getTokenClassName(char === '=' ? TokenType.OPERATOR : TokenType.DELIMITER)}
+                        >
+                          {char}
+                        </span>
+                      );
+                      currentPos = posInRawText + 1;
+                      currentToken = '';
+                      tokenStart = i + 1;
+                      tokenStartInRawText = posInRawText + 1;
+                      continue;
+                    }
+                    
+                    // 通常の文字
+                    if (currentToken === '') {
+                      tokenStart = i;
+                      tokenStartInRawText = posInRawText;
+                    }
+                    currentToken += char;
+                  }
+                  
+                  // 最後のトークンを追加
+                  if (currentToken.trim().length > 0) {
+                    elements.push(
+                      <span
+                        key={`token-${tokenStartInRawText}-final`}
+                        className={getTokenClassName(TokenType.SYMBOL)}
+                      >
+                        {currentToken.trim()}
+                      </span>
+                    );
+                    currentPos = tokenStartInRawText + currentToken.trim().length;
+                  }
+                  
+                  // 残りのテキスト（カラム72以降の+など）を追加
+                  const operandsEndPos = operandsStartPos + operandsText.length;
+                  if (operandsEndPos < rawText.length && operandsEndPos < 80) {
+                    const remainingText = rawText.substring(operandsEndPos, 80);
+                    if (remainingText.length > 0) {
+                      elements.push(
+                        <span
+                          key="remaining-text"
+                          className="tok-whitespace"
+                        >
+                          {remainingText}
+                        </span>
+                      );
+                    }
+                  }
+                  
+                  return elements.length > 0 ? elements : <span className="tok-whitespace">{rawText}</span>;
+                }
+                
+                // 通常の行の処理（既存のロジック）
                 const rawText = stmt.rawText.substring(0, 80); // 80カラムまで
                 if (stmt.tokens.length === 0) {
                   return <span className="tok-whitespace">{rawText}</span>;

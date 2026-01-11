@@ -1,6 +1,9 @@
 *---------------------------------------------------------------------*
 *        CONSTANT DEFINITIONS                                         *
 *---------------------------------------------------------------------*
+
+DEBBASND EQU   * 
+DEBDASD  DSECT
 ZERO     EQU   0                        ZERO CONSTANT
 ONE      EQU   1                        ONE CONSTANT
 MAXLEN   EQU   80                       MAXIMUM LENGTH
