@@ -1,6 +1,6 @@
 // src/components/panels/OperandPanel.tsx
 import type { AsmStatement, Operand, ParseContext } from "../../core/types";
-import { FileManager } from "../../core/fileManager";
+import { FileManager } from "../../core/FileManager";
 import { parseLine } from "../../core/lineParser";
 import { AssemblyAnalyzer } from "../../core/analyser";
 
@@ -41,10 +41,10 @@ function findSymbolDefinition(
   const symDef = context.symbols?.get(symbolNameUpper);
   if (symDef) {
     // 同じファイル内で定義されているかチェック
-    const isInternal = symDef.sourceFile === currentSourceFile || 
-                      (!symDef.sourceFile && !currentSourceFile) ||
-                      (symDef.sourceFile === undefined && currentSourceFile === undefined);
-    
+    const isInternal = symDef.sourceFile === currentSourceFile ||
+      (!symDef.sourceFile && !currentSourceFile) ||
+      (symDef.sourceFile === undefined && currentSourceFile === undefined);
+
     if (isInternal) {
       // 内部シンボル（同じファイル内で定義）
       let symbolType: "equ" | "dc" | "ds" | "label" | "external" = "external";
@@ -56,22 +56,22 @@ function findSymbolDefinition(
       // 元の行の内容を取得
       let definitionLine = `${symDef.name} ${symDef.type.toUpperCase()}${symDef.dataType ? ` ${symDef.dataType}` : ''}`;
       const sourceFileName = symDef.sourceFile || currentSourceFile;
-      
+
       // 方法1: statements から直接取得（優先）
       if (statements && symDef.definedAt > 0) {
         const definingStatement = statements.find(
-          s => s.lineNumber === symDef.definedAt && 
-               s.label?.toUpperCase() === symbolNameUpper &&
-               (s.sourceFile === sourceFileName || (!s.sourceFile && !sourceFileName))
+          s => s.lineNumber === symDef.definedAt &&
+            s.label?.toUpperCase() === symbolNameUpper &&
+            (s.sourceFile === sourceFileName || (!s.sourceFile && !sourceFileName))
         );
         if (definingStatement && definingStatement.rawText) {
           definitionLine = definingStatement.rawText.trim();
         }
       }
-      
+
       // 方法2: fileManager から取得（フォールバック）
-      if (definitionLine === `${symDef.name} ${symDef.type.toUpperCase()}${symDef.dataType ? ` ${symDef.dataType}` : ''}` && 
-          fileManager && sourceFileName && symDef.definedAt > 0) {
+      if (definitionLine === `${symDef.name} ${symDef.type.toUpperCase()}${symDef.dataType ? ` ${symDef.dataType}` : ''}` &&
+        fileManager && sourceFileName && symDef.definedAt > 0) {
         const file = fileManager.findFile(sourceFileName);
         if (file) {
           const lines = file.content.split('\n');
@@ -113,7 +113,7 @@ function findSymbolDefinition(
           if (stmt.label && stmt.opcode) {
             const opcodeUpper = stmt.opcode.toUpperCase();
             if (symbolDefiningOpcodes.includes(opcodeUpper) &&
-                stmt.label.toUpperCase() === symbolNameUpper) {
+              stmt.label.toUpperCase() === symbolNameUpper) {
               let symbolType: "equ" | "dc" | "ds" | "label" | "external" = "external";
               if (opcodeUpper === 'EQU') symbolType = 'equ';
               else if (opcodeUpper === 'DC') symbolType = 'dc';
@@ -187,25 +187,25 @@ function extractSymbolsFromOperands(operandsText: string): string[] {
 
   for (const part of parts) {
     const partUpper = part.toUpperCase();
-    
+
     // レジスタ（R0-R15など）は除外
     if (/^R\d+$|^GR\d+$/i.test(part)) {
       continue;
     }
-    
+
     // 予約語は除外
     if (reservedWords.has(partUpper)) {
       continue;
     }
-    
+
     // 数値リテラルは除外
-    if (/^[0-9A-F]+H?$/i.test(part) || 
-        /^X'[0-9A-F]+'$/i.test(part) || 
-        /^=F'/.test(part) ||
-        /^[=+*\/\-]/.test(part)) {
+    if (/^[0-9A-F]+H?$/i.test(part) ||
+      /^X'[0-9A-F]+'$/i.test(part) ||
+      /^=F'/.test(part) ||
+      /^[=+*\/\-]/.test(part)) {
       continue;
     }
-    
+
     // シンボル名として扱う（アルファベットまたはアンダースコアで始まる）
     if (/^[A-Z_][A-Z0-9_]*$/i.test(part)) {
       symbols.push(part);
@@ -219,7 +219,7 @@ export const OperandPanel = ({ statement, context, fileManager, statements }: Op
   // オペランドがない場合のチェック
   const hasOperands = statement?.instruction?.operands && statement.instruction.operands.length > 0;
   const hasOperandsText = statement?.operandsText && statement.operandsText.trim().length > 0;
-  
+
   // 継続行の場合でもオペランド解析情報を表示する
   const isContinuation = statement?.isContinuation === true;
   const shouldShowOperandInfo = hasOperands || hasOperandsText || isContinuation;
@@ -237,7 +237,7 @@ export const OperandPanel = ({ statement, context, fileManager, statements }: Op
 
   // 継続行の場合、継続元の行を探してオペランドを解析
   let operands = statement.instruction?.operands || [];
-  
+
   if (isContinuation && hasOperandsText && statement.operandsText && statement.continuationOf && statements) {
     // 継続元の行を探す
     const continuationSource = statements.find(s => s.lineNumber === statement.continuationOf);
@@ -269,7 +269,7 @@ export const OperandPanel = ({ statement, context, fileManager, statements }: Op
   const internalSymbolRefs: SymbolReference[] = [];
   const externalSymbolRefs: SymbolReference[] = [];
   const foundSymbolNames = new Set<string>();
-  
+
   // 継続行の場合でもオペランド解析情報を表示する
   if (hasOperandsText && !statement.isMacroCall && statement.operandsText) {
     const symbols = extractSymbolsFromOperands(statement.operandsText);
@@ -278,7 +278,7 @@ export const OperandPanel = ({ statement, context, fileManager, statements }: Op
       if (foundSymbolNames.has(symbolUpper)) {
         continue;
       }
-      
+
       // シンボル定義を検索（内部→外部の順）
       const symbolRef = findSymbolDefinition(
         symbol,
@@ -287,7 +287,7 @@ export const OperandPanel = ({ statement, context, fileManager, statements }: Op
         fileManager,
         statements
       );
-      
+
       if (symbolRef) {
         if (symbolRef.isInternal) {
           internalSymbolRefs.push(symbolRef);
@@ -298,50 +298,64 @@ export const OperandPanel = ({ statement, context, fileManager, statements }: Op
       }
     }
   }
-  
+
 
   const renderOperand = (operand: Operand, index: number) => {
     return (
       <div key={index} className="operand-detail">
         <div className="operand-header">
           <span className="operand-index">#{index + 1}</span>
-          <span className="operand-type-badge">{operand.type}</span>
-        </div>
-        <div className="operand-body">
-          <div className="operand-value">
-            <label>値:</label>
-            <code>{operand.value}</code>
-          </div>
+          {!operand.register && (
+            <span className="operand-type-badge">{operand.type}</span>
+          )}
           {operand.register && (
-            <div className="operand-property">
-              <label>レジスタ:</label>
-              <code>{operand.register}</code>
+            <span className="operand-type-badge">{operand.type} {operand.value}</span>
+          )}
+        </div>
+
+        <div className="operand-body">
+          {!operand.register && (
+            <div className="operand-value">
+              <label>シンボル名:</label>
+              <code>{operand.value}</code>
             </div>
           )}
+
+          {operand.register && (
+            <div className="operand-property">
+              <label>値:</label>
+              <code>未実装</code>
+            </div>
+          )}
+
           {operand.baseRegister && (
             <div className="operand-property">
               <label>ベースレジスタ:</label>
               <code>{operand.baseRegister}</code>
             </div>
           )}
+
           {operand.indexRegister && (
             <div className="operand-property">
               <label>インデックスレジスタ:</label>
               <code>{operand.indexRegister}</code>
             </div>
           )}
+
           {operand.displacement !== undefined && (
             <div className="operand-property">
               <label>ディスプレースメント:</label>
               <code>{operand.displacement} (0x{operand.displacement.toString(16)})</code>
             </div>
           )}
+
           {operand.length !== undefined && (
             <div className="operand-property">
               <label>長さ:</label>
               <code>{operand.length}</code>
             </div>
           )}
+
         </div>
       </div>
     );
@@ -366,16 +380,12 @@ export const OperandPanel = ({ statement, context, fileManager, statements }: Op
           <>
             {internalSymbolRefs.length > 0 && (
               <div className="internal-symbols-section">
-                <label>内部シンボル参照（同一ファイル内）:</label>
+                <label>内部定義:</label>
                 <div className="symbols-list">
                   {internalSymbolRefs.map((ref, idx) => (
                     <div key={idx} className="symbol-item">
                       <div className="symbol-header">
-                        <span className="symbol-name">{ref.symbolName}</span>
-                        <span className="symbol-type">({ref.type.toUpperCase()})</span>
-                        <span className="symbol-file" title={`定義ファイル: ${ref.fileName}`}>
-                          📄 {ref.fileName}
-                        </span>
+                        <span className="symbol-name">{ref.symbolName} ({ref.type.toUpperCase()})</span>
                       </div>
                       <div className="symbol-definition">
                         <code>{ref.definition.trimEnd()}</code>
@@ -388,15 +398,14 @@ export const OperandPanel = ({ statement, context, fileManager, statements }: Op
             )}
             {externalSymbolRefs.length > 0 && (
               <div className="external-symbols-section">
-                <label>外部シンボル参照:</label>
+                <label>外部定義:</label>
                 <div className="symbols-list">
                   {externalSymbolRefs.map((ref, idx) => (
                     <div key={idx} className="symbol-item">
                       <div className="symbol-header">
-                        <span className="symbol-name">{ref.symbolName}</span>
-                        <span className="symbol-type">({ref.type.toUpperCase()})</span>
+                        <span className="symbol-name">{ref.symbolName} ({ref.type.toUpperCase()})</span>
                         <span className="symbol-file" title={`定義ファイル: ${ref.fileName}`}>
-                          📄 {ref.fileName}
+                          {ref.fileName}
                         </span>
                       </div>
                       <div className="symbol-definition">

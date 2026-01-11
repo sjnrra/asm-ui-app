@@ -92,16 +92,6 @@ export const HighlightedView = ({
               }
             >
               <span className="line-number">
-                {isExternal && (
-                  <span className="external-marker" title={`外部ファイル: ${stmt.sourceFile || (stmt.opcode && context?.macros?.get(stmt.opcode.toUpperCase())?.sourceFile) || ""}`}>
-                    📄
-                  </span>
-                )}
-                {(isMacroCall || (stmt.opcode && context?.macros?.has(stmt.opcode.toUpperCase()))) && (
-                  <span className="macro-marker" title={`マクロ呼び出し: ${stmt.macroName || stmt.opcode}`}>
-                    ⚡
-                  </span>
-                )}
                 <span className="line-number-text">{stmt.lineNumber.toString().padStart(4, " ")}</span>
               </span>
               <span className="line-content">

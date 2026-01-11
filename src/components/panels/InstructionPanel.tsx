@@ -84,35 +84,19 @@ export const InstructionPanel = ({ statement, context }: InstructionPanelProps) 
         </div>
         {macroDef ? (
           <>
-            {statement.isMacroCall && statement.macroName && (
-              <div className="instruction-section">
-                <label>マクロ呼び出し:</label>
-                <span className="macro-call-value" title={`この行はマクロ "${statement.macroName}" を呼び出しています`}>
-                  ⚡ {statement.macroName}
-                </span>
-              </div>
-            )}
             {macroDef.sourceFile && (
               <div className="instruction-section dependency-files-section">
                 <label>マクロ定義ファイル（依存ファイル）:</label>
                 <div className="dependency-files-list">
                   <div className="dependency-file-item" title={`このマクロが定義されているファイル: ${macroDef.sourceFile}`}>
-                    📄 {macroDef.sourceFile}
+                    {macroDef.sourceFile}
                   </div>
                 </div>
               </div>
             )}
             <div className="instruction-section macro-definition-section">
-              <label>マクロ定義:</label>
               <div className="macro-definition-content">
-                <div className="macro-name">
-                  <strong>{macroDef.name}</strong>
-                  {macroDef.sourceFile && (
-                    <span className="macro-source-file" title={`マクロ定義元: ${macroDef.sourceFile}`}>
-                      📄 {macroDef.sourceFile}
-                    </span>
-                  )}
-                </div>
+  
                 {macroDef.parameters.length > 0 && (
                   <div className="macro-parameters">
                     <label>パラメータ:</label>
