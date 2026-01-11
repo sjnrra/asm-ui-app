@@ -299,7 +299,6 @@ export const OperandPanel = ({ statement, context, fileManager, statements }: Op
     }
   }
 
-
   const renderOperand = (operand: Operand, index: number) => {
     return (
       <div key={index} className="operand-detail">
