@@ -938,7 +938,9 @@ function App() {
     const loadDependencies = async () => {
       try {
         // dependencies.jsonからファイルリストを取得
-        const response = await fetch("/dependencies/dependencies.json");
+        // BASE_URLを使用してベースパスを考慮（vite.config.tsのbase設定に対応）
+        const baseUrl = import.meta.env.BASE_URL;
+        const response = await fetch(`${baseUrl}dependencies/dependencies.json`);
         if (!response.ok) {
           console.log("dependencies.jsonが見つかりません。依存ファイルの自動読み込みをスキップします。");
           setDependenciesLoaded(true);
@@ -951,7 +953,7 @@ function App() {
         // 各ファイルを読み込む
         const loadPromises = files.map(async (fileName: string) => {
           try {
-            const fileResponse = await fetch(`/dependencies/${fileName}`);
+            const fileResponse = await fetch(`${baseUrl}dependencies/${fileName}`);
             if (fileResponse.ok) {
               const content = await fileResponse.text();
               fileManager.addFile(fileName, content);

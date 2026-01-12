@@ -11,7 +11,7 @@ import { TokenType } from "./Types";
 export function parseLine(line: string, lineNumber: number, hasContinuationOperands?: boolean): AsmStatement {
   const rawText = line;
   const trimmed = line.trimEnd();
-  
+
   // 空行または空白のみの行
   if (!trimmed || trimmed.trim().length === 0) {
     return {
@@ -36,7 +36,7 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
 
   // 元の行での最初の非空白文字の位置を取得
   const firstNonSpaceInLine = line.search(/\S/);
-  
+
   // コメント行のチェック（カラム1に*がある場合）
   if (firstNonSpaceInLine >= 0 && line[firstNonSpaceInLine] === "*") {
     // コメント行全体
@@ -65,17 +65,17 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
   // ラベルが8文字を超える場合でも、実際のラベル全体をトークンとして扱う
   const labelArea = line.substring(0, Math.min(8, line.length));
   const labelTrimmed = labelArea.trim();
-  
+
   // ラベルの条件: カラム1-8に非空白文字がある場合
   // カラム9が空白でない場合、ラベルが8文字を超えている可能性がある
   if (labelTrimmed.length > 0) {
     // カラム1-8の最初の非空白文字の位置を取得
     const labelStartInArea = labelArea.length - labelArea.trimStart().length;
-    
+
     // ラベルが8文字を超えるかどうかを確認（カラム9が空白でない場合）
     let actualLabelEnd = labelStartInArea + labelTrimmed.length;
     let actualLabelText = labelTrimmed;
-    
+
     if (line.length > 8 && line[8] !== " " && line[8] !== "\t") {
       // カラム9が空白でない場合、ラベルが8文字を超えている
       // カラム9以降もラベルの一部として扱う（表示のため）
@@ -94,11 +94,11 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
       actualLabelText = labelTrimmed.substring(0, maxLabelLength);
       actualLabelEnd = labelStartInArea + actualLabelText.length;
     }
-    
+
     if (actualLabelText.length > 0) {
       // 有効なラベル名は最初の8文字（z/OSの仕様に従う）
       label = actualLabelText.substring(0, Math.min(8, actualLabelText.length));
-      
+
       // ラベル前の空白
       if (labelStartInArea > 0) {
         tokens.push({
@@ -108,7 +108,7 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
           columnEnd: labelStartInArea,
         });
       }
-      
+
       // ラベル全体をトークンとして追加（8文字を超える場合も含む）
       tokens.push({
         type: TokenType.LABEL,
@@ -116,7 +116,7 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
         columnStart: labelStartInArea,
         columnEnd: actualLabelEnd,
       });
-      
+
       // ラベルの後の空白（命令部分の開始まで）
       if (actualLabelEnd < line.length) {
         // 命令部分の開始位置を探す
@@ -127,7 +127,7 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
             break;
           }
         }
-        
+
         if (instructionStartPos > actualLabelEnd) {
           tokens.push({
             type: TokenType.WHITESPACE,
@@ -150,7 +150,7 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
     const labelToken = tokens.find(t => t.type === TokenType.LABEL);
     if (labelToken) {
       // ラベルトークンの後に空白トークンがある場合、その後の位置から命令開始
-      const whitespaceAfterLabel = tokens.find(t => 
+      const whitespaceAfterLabel = tokens.find(t =>
         t.type === TokenType.WHITESPACE && t.columnStart === labelToken.columnEnd
       );
       if (whitespaceAfterLabel) {
@@ -178,7 +178,7 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
     instructionStart = firstNonSpaceInLine < 9 && firstNonSpaceInLine >= 0 ? firstNonSpaceInLine : 9;
   }
   const instructionEnd = isContinuation ? 71 : Math.min(line.length, 72);
-  
+
   // ラベルがない場合、カラム1-9の空白を追加（固定カラム形式を維持）
   // 元の行の実際の空白を保持
   if (!label && instructionStart === 9) {
@@ -189,10 +189,10 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
       // 実際の空白文字を保持（タブは空白に変換）
       const whitespaceText = prefix.replace(/\t/g, " ");
       // 9文字に満たない場合は空白で埋める
-      const finalWhitespace = whitespaceText.length >= 9 
+      const finalWhitespace = whitespaceText.length >= 9
         ? whitespaceText.substring(0, 9)
         : whitespaceText + " ".repeat(9 - whitespaceText.length);
-      
+
       tokens.push({
         type: TokenType.WHITESPACE,
         text: finalWhitespace,
@@ -209,7 +209,7 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
       });
     }
   }
-  
+
   let instructionPart = "";
   if (instructionStart < instructionEnd) {
     // trim()せずに、元の行の命令部分を取得（先頭の空白は既にトークンとして追加済み）
@@ -224,7 +224,7 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
     // オペランド内の*（例: "*,12", "(,15)", "BAS 13,*+4+72"など）はコメントではない
     let commentStartIndex = -1;
     const originalPart = line.substring(instructionStart, instructionEnd);
-    
+
     // まず、オペコードとオペランドを分離
     // シングルクォーテーションまたはダブルクォーテーションで囲まれた部分内の空白は無視する
     /**
@@ -240,7 +240,8 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
     let inString = false;
     let stringChar = "";
     let opcodeEndPos = -1;
-    
+    let watanabe = 0
+
     /**
      * 継続行の処理
      * 
@@ -257,24 +258,25 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
       // 継続行が結合された行を処理する場合と、個別の継続行を処理する場合を区別する必要がある
       // 個別の継続行の場合、内容全体がオペランドとして扱われる（オペコードは存在しない）
       // 結合された行の場合、最初の行のオペコードを特定する必要がある
-      
+
       // 継続行が結合された後の行は、最初の行のオペコードとオペランド、そして継続行のオペランドが結合されている
       // 最初の行のオペコードを特定するために、最初の空白で区切られた最初の単語をオペコードと仮定
       // ただし、これはラベルの後の最初の単語（命令部分の最初の単語）
-      
+
       // 文字列内の空白を考慮して最初の空白を探す
       let firstSpaceIndex = -1;
       inString = false;
       stringChar = "";
-      
+
       for (let i = 0; i < instructionPart.length; i++) {
         const char = instructionPart[i];
-        
+
         // 文字列開始/終了のチェック
         if ((char === "'" || char === '"') && (i === 0 || instructionPart[i - 1] !== "\\")) {
           if (!inString) {
             inString = true;
             stringChar = char;
+            watanabe = i;
           } else if (char === stringChar) {
             if (i + 1 >= instructionPart.length || instructionPart[i + 1] !== stringChar) {
               inString = false;
@@ -285,41 +287,41 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
           }
           continue;
         }
-        
+
         // 文字列内の空白は無視
         if (inString) {
           continue;
         }
-        
+
         // 文字列外の空白を見つけた場合
         if (/\s/.test(char)) {
           firstSpaceIndex = i;
           break;
         }
       }
-      
+
       // 継続行の場合、最初の空白が見つかっても、それがオペコードかどうかを判定する必要がある
       // 継続行は通常、オペランドから始まるので、最初の空白までの部分がオペコードとして認識される可能性がある
       // しかし、継続行の内容のみが渡されている場合（個別の継続行を処理する場合）、すべてがオペランドとして扱われるべき
-      
+
       // 個別の継続行かどうかを判定
       // 継続行の内容は通常：
       // 1. 先頭が空白でインデントされている
       // 2. =、,、( などのオペランド文字で始まる
       // 3. または、内容が短く、オペコードとして認識される可能性が低い（例: DDNAME=SYSUT1,MACRF=IN）
-      
+
       const trimmedInstruction = instructionPart.trim();
-      const startsWithOperand = trimmedInstruction.startsWith("=") || 
-                                 trimmedInstruction.startsWith(",") || 
-                                 trimmedInstruction.startsWith("(") ||
-                                 /^\s/.test(instructionPart); // 先頭が空白
-      
+      const startsWithOperand = trimmedInstruction.startsWith("=") ||
+        trimmedInstruction.startsWith(",") ||
+        trimmedInstruction.startsWith("(") ||
+        /^\s/.test(instructionPart); // 先頭が空白
+
       // 最初の空白までの部分がオペコードとして認識される可能性があるかチェック
       // オペコードは通常、短い英字の単語（例: ACB, RPL, WTOなど）
       // 継続行の内容（例: DDNAME=SYSUT1,MACRF=IN）は、オペコードとしては長すぎる
       const firstWord = firstSpaceIndex > 0 ? instructionPart.substring(0, firstSpaceIndex).trim() : trimmedInstruction;
       const looksLikeOpcode = /^[A-Z]{1,8}$/i.test(firstWord); // 1-8文字の英字のみ
-      
+
       // 個別の継続行を処理する場合、hasContinuationOperands が true で、
       // 内容がオペランドから始まるか、オペコードとして認識されない場合は、すべてをオペランドとして扱う
       // 継続行の場合、オペコードは存在しない（最初の行でのみオペコードが存在）
@@ -345,81 +347,81 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
         }
       }
     }
-    
+
     // 継続行がない場合、通常の処理を行う
     if (!hasContinuationOperands) {
       for (let i = 0; i < instructionPart.length; i++) {
-      const char = instructionPart[i];
-      
-      // 文字列開始/終了のチェック
-      if ((char === "'" || char === '"') && (i === 0 || instructionPart[i - 1] !== "\\")) {
-        if (!inString) {
-          inString = true;
-          stringChar = char;
-        } else if (char === stringChar) {
-          // 文字列終了（エスケープされたクォートのチェック）
-          if (i + 1 >= instructionPart.length || instructionPart[i + 1] !== stringChar) {
-            inString = false;
-            stringChar = "";
-          } else {
-            // エスケープされたクォート
-            i++; // 次の文字もスキップ
+        const char = instructionPart[i];
+
+        // 文字列開始/終了のチェック
+        if ((char === "'" || char === '"') && (i === 0 || instructionPart[i - 1] !== "\\")) {
+          if (!inString) {
+            inString = true;
+            stringChar = char;
+          } else if (char === stringChar) {
+            // 文字列終了（エスケープされたクォートのチェック）
+            if (i + 1 >= instructionPart.length || instructionPart[i + 1] !== stringChar) {
+              inString = false;
+              stringChar = "";
+            } else {
+              // エスケープされたクォート
+              i++; // 次の文字もスキップ
+            }
           }
+          // オペコードが見つかっていない場合、オペコードに追加
+          if (opcodeEndPos < 0) {
+            opcodePart += char;
+          } else {
+            operandsPart += char;
+          }
+          continue;
         }
-        // オペコードが見つかっていない場合、オペコードに追加
+
+        // 文字列内の場合は空白を無視（文字列の一部として扱う）
+        if (inString) {
+          if (opcodeEndPos < 0) {
+            opcodePart += char;
+          } else {
+            operandsPart += char;
+          }
+          continue;
+        }
+
+        // 文字列外の空白でオペコードとオペランドを分離
+        if (/\s/.test(char)) {
+          if (opcodeEndPos < 0 && opcodePart.length > 0) {
+            // オペコードの終了位置を記録
+            opcodeEndPos = i;
+          }
+          // オペコードが見つかった後の空白はオペランドに含めない（オペランド開始の空白は除外）
+          if (opcodeEndPos >= 0 && operandsPart.length > 0) {
+            // 既にオペランドが始まっている場合は空白を追加（複数のオペランド間の空白）
+            operandsPart += char;
+          }
+          continue;
+        }
+
+        // 非空白文字
         if (opcodeEndPos < 0) {
           opcodePart += char;
         } else {
           operandsPart += char;
         }
-        continue;
-      }
-      
-      // 文字列内の場合は空白を無視（文字列の一部として扱う）
-      if (inString) {
-        if (opcodeEndPos < 0) {
-          opcodePart += char;
-        } else {
-          operandsPart += char;
-        }
-        continue;
-      }
-      
-      // 文字列外の空白でオペコードとオペランドを分離
-      if (/\s/.test(char)) {
-        if (opcodeEndPos < 0 && opcodePart.length > 0) {
-          // オペコードの終了位置を記録
-          opcodeEndPos = i;
-        }
-        // オペコードが見つかった後の空白はオペランドに含めない（オペランド開始の空白は除外）
-        if (opcodeEndPos >= 0 && operandsPart.length > 0) {
-          // 既にオペランドが始まっている場合は空白を追加（複数のオペランド間の空白）
-          operandsPart += char;
-        }
-        continue;
-      }
-      
-      // 非空白文字
-      if (opcodeEndPos < 0) {
-        opcodePart += char;
-      } else {
-        operandsPart += char;
       }
     }
-    }
-    
+
     // 前後の空白を削除（継続行がある場合は既に処理済み）
     if (!hasContinuationOperands) {
       opcodePart = opcodePart.trim();
       operandsPart = operandsPart.trim();
     }
-    
+
     // オペコードの位置を元の行で特定
     const opcodeIndex = originalPart.indexOf(opcodePart);
-    
+
     // オペコードの終了位置を取得
     const opcodeEndInOriginal = opcodeIndex >= 0 ? opcodeIndex + opcodePart.length : -1;
-    
+
     // オペコードの直後に空白が10個以上連続する場合、以降をコメントとして扱う
     let skipNormalOperandParsing = false;
     if (opcodeEndInOriginal >= 0 && opcodeEndInOriginal < originalPart.length) {
@@ -434,7 +436,7 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
           break;
         }
       }
-      
+
       // 空白が10個以上連続する場合、最初の非空白文字以降をコメントとして扱う
       if (spaceCount >= 10 && firstNonSpaceAfterOpcode >= 0) {
         // オペランド部分は空
@@ -444,11 +446,11 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
         skipNormalOperandParsing = true;
       }
     }
-    
+
     // オペランド部分が存在する場合、オペランドとコメントを分離
     // オペランドは空白1つで区切られるが、コメントは空白2つ以上で区切られる
     if (operandsPart && !skipNormalOperandParsing) {
-      
+
       if (opcodeEndInOriginal >= 0) {
         // オペコードの終了位置から、最初の非空白文字（オペランドの開始）を探す
         let operandStartInOriginal = -1;
@@ -458,7 +460,7 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
             break;
           }
         }
-        
+
         if (operandStartInOriginal >= 0) {
           // オペランドの終了位置を特定
           // オペランドは、空白が1つのみで区切られるが、空白が2つ以上続いた後はコメント
@@ -468,10 +470,10 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
           let consecutiveSpaces = 0;
           let inString = false;
           let stringChar = "";
-          
+
           for (let i = operandStartInOriginal; i < originalPart.length; i++) {
             const char = originalPart[i];
-            
+
             // 文字列開始/終了のチェック
             if ((char === "'" || char === '"') && (i === 0 || originalPart[i - 1] !== "\\")) {
               if (!inString) {
@@ -495,14 +497,14 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
               operandEndInOriginal = i + 1;
               continue;
             }
-            
+
             // 文字列内の場合は空白を無視
             if (inString) {
               lastNonSpacePos = i + 1;
               operandEndInOriginal = i + 1;
               continue;
             }
-            
+
             if (/\s/.test(char)) {
               consecutiveSpaces++;
               // 空白が2つ以上続いた場合、オペランドの終了とみなす
@@ -518,11 +520,11 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
               operandEndInOriginal = i + 1;
             }
           }
-          
+
           // オペランド部分を抽出（元の行から直接取得）
           if (operandEndInOriginal > operandStartInOriginal) {
             operandsPart = originalPart.substring(operandStartInOriginal, operandEndInOriginal).trim();
-            
+
             // オペランド終了後に空白が2つ以上続いてテキストがある場合、コメントとして設定
             let commentStartCandidate = -1;
             let consecutiveSpaces = 0;
@@ -548,20 +550,20 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
         }
       }
     }
-    
+
     // オペランド部分が存在する場合、オペランド内の*を除外
     if (operandsPart && operandsPart.trim() && commentStartIndex < 0) {
       // オペランド部分を解析して、オペランドの終了位置を特定
       // オペランドは括弧、カンマ、空白で区切られる
       const trimmedOperands = operandsPart.trim();
-      
+
       // オペランド部分内の*の位置をすべてチェック
       // オペランド内の*のパターン: *,12, (,15), *+4, など
       // オペランド内の*は、カンマ、括弧、演算子（+, -, *, /）の前後に現れる
-      
+
       // より簡単な方法: オペランド部分全体を解析し、オペランドが終了した位置を特定
       // オペランドの終了は、最後の非空白文字（*以外）の後、またはオペランドが*のみの場合
-      
+
       // オペランド部分の最後の有効な文字（*以外の非空白文字）を探す
       let lastValidCharIndex = -1;
       for (let i = trimmedOperands.length - 1; i >= 0; i--) {
@@ -571,7 +573,7 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
           break;
         }
       }
-      
+
       if (lastValidCharIndex >= 0) {
         // オペランド部分の後に*がある場合をチェック
         const afterOperand = trimmedOperands.substring(lastValidCharIndex + 1).trim();
@@ -591,7 +593,7 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
         // これはオペランドとして扱う（コメントではない）
       }
     }
-    
+
     // 上記の方法で見つからない場合、元の行から直接探す
     if (commentStartIndex < 0) {
       // オペランド部分の終了を特定する
@@ -599,7 +601,7 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
       const opcodeIndex = originalPart.indexOf(opcodePart);
       if (opcodeIndex >= 0) {
         let searchStart = opcodeIndex + opcodePart.length;
-        
+
         if (operandsPart) {
           const trimmedOperands = operandsPart.trim();
           // オペランド部分の位置を元の行で特定
@@ -613,7 +615,7 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
                 break;
               }
             }
-            
+
             if (lastNonSpacePos >= 0) {
               searchStart = lastNonSpacePos;
             } else {
@@ -625,7 +627,7 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
             }
           }
         }
-        
+
         // オペランドの後に現れる*を探す（コメント）
         let foundAsterisk = false;
         for (let i = searchStart; i < originalPart.length; i++) {
@@ -636,9 +638,9 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
             // *の前が空白で、*の後も空白または行末の場合、コメントとみなす
             const beforeChar = i > 0 ? originalPart[i - 1] : "";
             const afterChar = i < originalPart.length - 1 ? originalPart[i + 1] : "";
-            
-            if ((beforeChar === " " || beforeChar === "\t") && 
-                (afterChar === " " || afterChar === "\t" || afterChar === "" || i === originalPart.length - 1)) {
+
+            if ((beforeChar === " " || beforeChar === "\t") &&
+              (afterChar === " " || afterChar === "\t" || afterChar === "" || i === originalPart.length - 1)) {
               commentStartIndex = i;
               foundAsterisk = true;
               break;
@@ -648,12 +650,12 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
             break;
           }
         }
-        
+
         // *が見つからない場合、オペランド終了後に空白が2つ以上続いた後にテキストがある場合はコメント
         if (!foundAsterisk && commentStartIndex < 0) {
           // オペコード+オペランドの終了位置を特定（searchStartは既にオペランド終了位置を指している）
           let instructionEndPos = searchStart;
-          
+
           // オペランド部分が存在する場合、オペランドの終了位置をより正確に計算
           if (operandsPart && operandsPart.trim()) {
             const trimmedOperands = operandsPart.trim();
@@ -662,14 +664,14 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
             if (operandStart >= 0) {
               // オペランド部分の終了位置を計算（括弧やカンマを考慮）
               let operandEnd = operandStart + trimmedOperands.length;
-              
+
               // 開き括弧がある場合、対応する閉じ括弧まで含める
               let openParens = 0;
               for (let i = 0; i < trimmedOperands.length; i++) {
                 if (trimmedOperands[i] === "(") openParens++;
                 else if (trimmedOperands[i] === ")") openParens--;
               }
-              
+
               // 開き括弧が閉じられていない場合、元の行で閉じ括弧を探す
               if (openParens > 0) {
                 for (let j = operandEnd; j < originalPart.length && j < operandEnd + 20; j++) {
@@ -682,7 +684,7 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
                   }
                 }
               }
-              
+
               // オペランドの最後の有効文字の位置を探す
               let lastValidPos = operandStart;
               for (let i = trimmedOperands.length - 1; i >= 0; i--) {
@@ -692,11 +694,11 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
                   break;
                 }
               }
-              
+
               instructionEndPos = Math.max(operandEnd, lastValidPos);
             }
           }
-          
+
           // 命令の終了位置から、空白が2つ以上続いた後に非空白文字があるかチェック
           let consecutiveSpaces = 0;
           let commentCandidateStart = -1;
@@ -726,12 +728,12 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
       // コメントがある場合
       const instruction = originalPart.substring(0, commentStartIndex).trim();
       comment = originalPart.substring(commentStartIndex).trim();
-      
+
       if (instruction) {
         // 命令部分をトークン化（オペランド内の*を含む）
         const instTokens = tokenizeInstructionPart(instruction, instructionStart);
         tokens.push(...instTokens);
-        
+
         // オペコードとオペランドを抽出（文字列内の空白を考慮）
         // 既に設定された operandsPart がある場合はそれを使用、ない場合は分割する
         // ただし、hasContinuationOperands が true の場合、継続行なのでオペコードは存在しない
@@ -761,8 +763,9 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
           operandsText = splitResult.operands;
         }
       }
-      
+
       // コメントトークン（元の文字列位置を使用）
+      // 渡部★　継続行はここを通らない
       const commentStartPos = instructionStart + commentStartIndex;
       tokens.push({
         type: TokenType.COMMENT,
@@ -774,7 +777,7 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
       // コメントなし - オペランド内の*を含む命令全体をトークン化
       const instTokens = tokenizeInstructionPart(instructionPart, instructionStart);
       tokens.push(...instTokens);
-      
+
       // オペコードとオペランドを抽出（文字列内の空白を考慮）
       // 既に設定された operandsPart がある場合はそれを使用
       if (operandsPart) {
@@ -797,7 +800,7 @@ export function parseLine(line: string, lineNumber: number, hasContinuationOpera
       }
     }
   } else if (isContinuation && line.length > 72) {
-    // 継続行のみ（カラム72以降）
+    // 継続行のみ（カラム72以降） 
     comment = line.substring(72).trim();
     if (comment) {
       tokens.push({
@@ -832,10 +835,10 @@ function splitOpcodeAndOperands(text: string): { opcode: string; operands: strin
   let inString = false;
   let stringChar = "";
   let opcodeEndPos = -1;
-  
+
   for (let i = 0; i < text.length; i++) {
     const char = text[i];
-    
+
     // 文字列開始/終了のチェック
     if ((char === "'" || char === '"') && (i === 0 || text[i - 1] !== "\\")) {
       if (!inString) {
@@ -859,7 +862,7 @@ function splitOpcodeAndOperands(text: string): { opcode: string; operands: strin
       }
       continue;
     }
-    
+
     // 文字列内の場合は空白を無視（文字列の一部として扱う）
     if (inString) {
       if (opcodeEndPos < 0) {
@@ -869,7 +872,7 @@ function splitOpcodeAndOperands(text: string): { opcode: string; operands: strin
       }
       continue;
     }
-    
+
     // 文字列外の空白でオペコードとオペランドを分離
     if (/\s/.test(char)) {
       if (opcodeEndPos < 0 && opcode.length > 0) {
@@ -883,7 +886,7 @@ function splitOpcodeAndOperands(text: string): { opcode: string; operands: strin
       }
       continue;
     }
-    
+
     // 非空白文字
     if (opcodeEndPos < 0) {
       opcode += char;
@@ -891,7 +894,7 @@ function splitOpcodeAndOperands(text: string): { opcode: string; operands: strin
       operands += char;
     }
   }
-  
+
   // 前後の空白を削除
   return {
     opcode: opcode.trim(),
@@ -909,57 +912,36 @@ function tokenizeInstructionPart(text: string, columnOffset: number): AsmToken[]
   let stringChar = "";
   let currentToken = "";
   let tokenStart = 0;
+  let watanabe = 0
+  let watanabe2 = 0
+
 
   while (currentPos < text.length) {
     const char = text[currentPos];
     const isWhitespace = /\s/.test(char);
-
+    watanabe2 = watanabe2 + 1;
+    //オペコードから一桁ずつチェック（charは1桁ずつ）
+    // console.log("watanabsanda:", inString, text.substring(1, currentPos))
+    //シングルクォテーションの開始中
     if (inString) {
-      currentToken += char;
-      // 文字列終了チェック（アポストロフィが2つ続く場合はエスケープ、単独の場合は終了）
-      if (char === stringChar) {
-        // 次の文字もアポストロフィの場合はエスケープされたアポストロフィ
-        if (currentPos < text.length - 1 && text[currentPos + 1] === stringChar) {
-          currentToken += stringChar; // エスケープされたアポストロフィを追加
-          currentPos += 2;
-          continue;
-        } else {
-          // 文字列終了 - トークンタイプを判定
-          // X'...'形式は数値として扱う
-          if (/^X'[0-9A-F]+'$/i.test(currentToken) || /^XL'[0-9A-F]+'$/i.test(currentToken)) {
-            tokens.push({
-              type: TokenType.NUMBER,
-              text: currentToken,
-              columnStart: tokenStart,
-              columnEnd: columnOffset + currentPos + 1,
-              metadata: { value: parseNumber(currentToken) },
-            });
-          }
-          // B'...'形式も数値として扱う
-          else if (/^B'[01]+'$/i.test(currentToken)) {
-            tokens.push({
-              type: TokenType.NUMBER,
-              text: currentToken,
-              columnStart: tokenStart,
-              columnEnd: columnOffset + currentPos + 1,
-              metadata: { value: parseNumber(currentToken) },
-            });
-          }
-          // C'...', CL8'...'などは文字列
-          else {
-            tokens.push({
-              type: TokenType.STRING,
-              text: currentToken,
-              columnStart: tokenStart,
-              columnEnd: columnOffset + currentPos + 1,
-            });
-          }
-          currentToken = "";
-          inString = false;
-          currentPos++;
-          continue;
-        }
+      // continue;
+    }
+
+    // デリミタのチェック（シングルクォーテーションの途中の場合はデリミタなしで扱う）
+    if ((char === "," || char === "(" || char === ")" || char === " ") && inString === false) {
+      if (currentToken) {
+        // ここの処理を見直した方がよい　★★★★★★★★★★★
+        tokens.push(createToken(currentToken, columnOffset + tokenStart, columnOffset + currentPos));
+        currentToken = "";
       }
+      // console.log("hello3",char,currentToken, columnOffset, currentPos)
+      tokens.push({
+        type: TokenType.DELIMITER,
+        text: char,
+        columnStart: columnOffset + currentPos,
+        columnEnd: columnOffset + currentPos + 1,
+      });
+
       currentPos++;
       continue;
     }
@@ -979,10 +961,27 @@ function tokenizeInstructionPart(text: string, columnOffset: number): AsmToken[]
         inString = true;
         stringChar = char;
         currentToken = currentToken + char;
+
+        watanabe = currentPos;
+        watanabe2 = 0;
+
         currentPos++;
+
         continue;
       }
-    }
+    } else if (char === "'" && inString) {
+      console.log("testlog", columnOffset + watanabe, columnOffset + currentPos)
+      inString = false;
+      tokens.push({
+        type: TokenType.DELIMITER,
+        text: text,
+        columnStart: columnOffset + watanabe - 1,
+        columnEnd: columnOffset + currentPos + 1,
+      });
+      watanabe = 0;
+      continue;
+    } 
+
 
     if (isWhitespace) {
       if (currentToken) {
@@ -1006,21 +1005,7 @@ function tokenizeInstructionPart(text: string, columnOffset: number): AsmToken[]
       continue;
     }
 
-    // デリミタのチェック
-    if (/[,()]/.test(char)) {
-      if (currentToken) {
-        tokens.push(createToken(currentToken, columnOffset + tokenStart, columnOffset + currentPos));
-        currentToken = "";
-      }
-      tokens.push({
-        type: TokenType.DELIMITER,
-        text: char,
-        columnStart: columnOffset + currentPos,
-        columnEnd: columnOffset + currentPos + 1,
-      });
-      currentPos++;
-      continue;
-    }
+
 
     // 演算子のチェック（ただし、文字列内でない場合のみ）
     if (/[+\-*/=]/.test(char) && !inString) {
@@ -1029,12 +1014,12 @@ function tokenizeInstructionPart(text: string, columnOffset: number): AsmToken[]
         // 数値の一部として扱う（負の数の可能性、ただし演算子の可能性もある）
         // ここでは単純に演算子として処理
       }
-      
+
       if (currentToken) {
         tokens.push(createToken(currentToken, columnOffset + tokenStart, columnOffset + currentPos));
         currentToken = "";
       }
-      
+
       // 演算子を単独のトークンとして追加
       tokens.push({
         type: TokenType.OPERATOR,
@@ -1046,7 +1031,6 @@ function tokenizeInstructionPart(text: string, columnOffset: number): AsmToken[]
       continue;
     }
 
-    // 通常の文字
     if (!currentToken) {
       tokenStart = currentPos;
     }
@@ -1054,10 +1038,23 @@ function tokenizeInstructionPart(text: string, columnOffset: number): AsmToken[]
     currentPos++;
   }
 
-  // 残りのトークンを処理
+  //シングルクォーテーションを閉じずに行処理を行った場合（継続行を想定）
+  if (inString) {
+    // console.log("testlog", columnOffset + watanabe, columnOffset + currentPos)
+    // inString = false;
+    tokens.push({
+      type: TokenType.DELIMITER,
+      text: text,
+      columnStart: columnOffset + watanabe - 1,
+      columnEnd: columnOffset + currentPos,
+    });
+    watanabe = 0;
+  } 
   if (currentToken) {
     tokens.push(createToken(currentToken, columnOffset + tokenStart, columnOffset + currentPos));
   }
+
+  // 残りのトークンを処理
 
   return tokens;
 }

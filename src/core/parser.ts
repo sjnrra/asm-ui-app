@@ -945,8 +945,6 @@ export class AssemblyParser {
         // デバッグ用: マクロが見つからない場合のログ
         if (opcodeUpper === 'LOADCONST' || opcodeUpper === 'STOREREG' || opcodeUpper === 'SAVEREGS' || opcodeUpper === 'RESTOREREGS') {
           console.log(`マクロ未検出: ${opcodeUpper} at line ${lineNumber}`);
-          console.log(`  登録済みマクロ数: ${this.context.macros.size}`);
-          console.log(`  登録済みマクロ名: [${Array.from(this.context.macros.keys()).join(', ')}]`);
           if (this.context.macros.size > 0) {
             // 最初の3つのマクロ定義の詳細を表示
             let count = 0;
