@@ -38,19 +38,6 @@ export const EditorPane = ({ text, setText, onCursorChange }: EditorPaneProps) =
     }
   };
 
-  // フォントを等幅に設定（z/OSの固定カラム形式に対応）
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.fontFamily = "'Consolas', 'Monaco', 'Courier New', monospace";
-      textareaRef.current.style.fontSize = "14px";
-      textareaRef.current.style.lineHeight = "1.6";
-    }
-    if (lineNumbersRef.current) {
-      lineNumbersRef.current.style.fontFamily = "'Consolas', 'Monaco', 'Courier New', monospace";
-      lineNumbersRef.current.style.fontSize = "14px";
-      lineNumbersRef.current.style.lineHeight = "1.6";
-    }
-  }, []);
 
   // 行番号を生成
   const lineNumbers = Array.from({ length: lineCount }, (_, i) => i + 1);
@@ -58,7 +45,7 @@ export const EditorPane = ({ text, setText, onCursorChange }: EditorPaneProps) =
   return (
     <div className="editor-pane">
       <div className="panel-header">
-        <h3>アセンブリソース入力エディタ</h3>
+        <h3>アセンブラ入力エディタ</h3>
       </div>
       <div className="editor-container">
         <div className="editor-line-numbers" ref={lineNumbersRef}>

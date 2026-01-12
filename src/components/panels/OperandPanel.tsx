@@ -1,7 +1,7 @@
 // src/components/panels/OperandPanel.tsx
-import type { AsmStatement, Operand, ParseContext } from "../../core/types";
+import type { AsmStatement, Operand, ParseContext } from "../../core/Types";
 import { FileManager } from "../../core/FileManager";
-import { parseLine } from "../../core/lineParser";
+import { parseLine } from "../../core/LineParser";
 import { AssemblyAnalyzer } from "../../core/analyser";
 
 interface OperandPanelProps {

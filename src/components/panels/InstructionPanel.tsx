@@ -1,5 +1,5 @@
 // src/components/panels/InstructionPanel.tsx
-import type { AsmStatement, ParseContext } from "../../core/types";
+import type { AsmStatement, ParseContext } from "../../core/Types";
 
 interface InstructionPanelProps {
   statement?: AsmStatement;

@@ -1,5 +1,5 @@
-import type { AsmStatement, AsmToken } from "./types";
-import { TokenType } from "./types";
+import type { AsmStatement, AsmToken } from "./Types";
+import { TokenType } from "./Types";
 
 /**
  * z/OSアセンブラの固定カラム形式を解析

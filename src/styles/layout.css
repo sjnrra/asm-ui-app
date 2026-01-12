@@ -4,7 +4,7 @@
   flex-direction: column;
   height: 100vh;
   width: 100vw;
-  background: #1e1e1e;
+  background: #141414;
 }
 
 .app-header {
@@ -171,7 +171,7 @@
   border: none;
   background: #1e1e1e;
   color: #d4d4d4;
-  /* font-family: 'Consolas', 'Yu Gothic', 'Courier New', monospace; */
+  font-family: inherit;
   font-size: 14px;
   line-height: 1.6;
   resize: none;
@@ -327,7 +327,7 @@
 
 .detail-section span {
   color: #d4d4d4;
-  /* font-family: 'Consolas', 'Monaco', 'Courier New', monospace; */
+  font-family: inherit;
   word-wrap: break-word;
   word-break: break-word;
   overflow-wrap: break-word;
@@ -362,7 +362,7 @@
 
 .source-file-value {
   color: #4ec9b0;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: inherit;
   font-size: 12px;
   word-wrap: break-word;
   word-break: break-word;
@@ -381,7 +381,7 @@
 
 .copy-file-value {
   color: #4ec9b0;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: inherit;
   font-size: 12px;
   font-weight: 400;
   word-wrap: break-word;
@@ -511,7 +511,7 @@
 
 .external-symbol-name {
   color: #dcdcaa;
-  font-family: 'Consolas', 'Courier New', monospace;
+  font-family: inherit;
   font-size: 13px;
   font-weight: 400;
 }
@@ -519,14 +519,14 @@
 /* シンボルタイプ（内部・外部共通） */
 .symbol-type {
   color: #858585;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: inherit;
   font-size: 11px;
   font-style: italic;
 }
 
 .external-symbol-type {
   color: #858585;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: inherit;
   font-size: 11px;
   font-style: italic;
 }
@@ -534,14 +534,14 @@
 /* シンボルファイル（内部・外部共通） */
 .symbol-file {
   color: #4ec9b0;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: inherit;
   font-size: 11px;
   cursor: help;
 }
 
 .external-symbol-file {
   color: #4ec9b0;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: inherit;
   font-size: 11px;
   cursor: help;
 }
@@ -568,7 +568,7 @@
 .symbol-definition code,
 .external-symbol-definition code {
   color: #d4d4d4;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: inherit;
   font-size: 11px;
   background: #1e1e1e;
   padding: 4px 6px;
@@ -618,7 +618,7 @@
 .macro-source-file {
   color: #4ec9b0;
   font-size: 11px;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: inherit;
 }
 
 .macro-parameters {
@@ -650,11 +650,6 @@
   gap: 2px;
 }
 
-.macro-body label {
-  /* font-size: 12px; */
-  /* color: #858585; */
-  /* font-weight: 400; */
-}
 
 .macro-body-content {
   background: #1e1e1e;
@@ -726,7 +721,7 @@
 
 .operand-value {
   color: #d4d4d4;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: inherit;
 }
 
 .operand-detail {
@@ -762,12 +757,12 @@
 
 .format {
   color: #4ec9b0;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: inherit;
 }
 
 .addressing-mode {
   color: #6f42c1;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: inherit;
 }
 
 .instruction-note {
@@ -807,7 +802,7 @@
 .macro-source {
   color: #4ec9b0;
   font-size: 11px;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: inherit;
 }
 
 .macro-body-preview {
@@ -827,7 +822,7 @@
   border: 1px solid #3e3e42;
   border-radius: 4px;
   padding: 6px;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: inherit;
   font-size: 12px;
   line-height: 1.5;
   max-height: 120px;
@@ -876,7 +871,7 @@
 
 .macro-call-value {
   color: #6f42c1;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: inherit;
   font-size: 12px;
   font-weight: 400;
 }
@@ -901,7 +896,7 @@
   max-height: 250px;
   overflow-y: auto;
   overflow-x: auto;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: inherit;
   font-size: 12px;
   line-height: 1.6;
   word-wrap: break-word;
@@ -978,7 +973,7 @@
 .operand-value code,
 .operand-property code {
   color: #d4d4d4;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: inherit;
   background: transparent;
 }
 
@@ -1057,7 +1052,7 @@
 
 .symbol-data-type-value {
   color: #4ec9b0;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: inherit;
   word-break: break-word;
 }
 
@@ -1077,7 +1072,7 @@
 
 .symbol-length-value {
   color: #4ec9b0;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: inherit;
   font-weight: 400;
 }
 
@@ -1097,7 +1092,7 @@
 
 .symbol-value {
   color: #d4d4d4;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: inherit;
   /* font-size: 12px; */
   word-break: break-word;
   line-height: 1.4;
@@ -1118,7 +1113,7 @@
 .symbol-source-file {
   color: #4ec9b0;
   /* font-size: 11px; */
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: inherit;
 }
 
 /* ライトモード対応 */
@@ -1279,7 +1274,7 @@
 
 .file-name-text {
   color: #4ec9b0;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: inherit;
   font-size: 13px;
   font-weight: 400;
   word-break: break-all;
@@ -1302,7 +1297,7 @@
 .file-path {
   color: #858585;
   font-size: 11px;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: inherit;
   word-break: break-all;
 }
 

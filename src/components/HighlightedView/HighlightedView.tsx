@@ -1,7 +1,7 @@
 // src/components/HighlightedView/HighlightedView.tsx
 import type { ReactElement } from "react";
-import type { AsmStatement, ParseContext } from "../../core/types";
-import { TokenType } from "../../core/types";
+import type { AsmStatement, ParseContext } from "../../core/Types";
+import { TokenType } from "../../core/Types";
 
 interface HighlightedViewProps {
   statements: AsmStatement[];

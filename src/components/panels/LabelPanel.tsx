@@ -1,5 +1,5 @@
 // src/components/panels/LabelPanel.tsx
-import type { SymbolDefinition } from "../../core/types";
+import type { SymbolDefinition } from "../../core/Types";
 
 interface LabelPanelProps {
   symbols: Map<string, SymbolDefinition>;

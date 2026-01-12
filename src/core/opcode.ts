@@ -28,7 +28,7 @@ export type OpcodeFormat =
   | "SSF"   // Storage-Storage Format (6バイト)
   | "SSY"   // Storage-Storage Extended (6バイト);
 
-import type { OperandType } from "./types";
+import type { OperandType } from "./Types";
 
 export interface OpcodeInfo {
   mnemonic: string;

@@ -1,5 +1,5 @@
 // src/components/panels/FilesPanel.tsx
-import type { SourceFile } from "../../core/fileManager";
+import type { SourceFile } from "../../core/FileManager";
 
 interface FilesPanelProps {
   files: SourceFile[];

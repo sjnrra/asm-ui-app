@@ -1,7 +1,7 @@
 // tokenizer.ts は lineParser.ts に統合されました
 // このファイルは将来の拡張用に保持します
 
-import type { AsmToken } from "./types";
+import type { AsmToken } from "./Types";
 
 /**
  * より詳細なトークン化が必要な場合の拡張用関数

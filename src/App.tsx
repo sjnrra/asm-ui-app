@@ -7,10 +7,10 @@ import { LabelPanel } from "./components/panels/LabelPanel";
 import { OperandPanel } from "./components/panels/OperandPanel";
 import { FilesPanel } from "./components/panels/FilesPanel";
 import { MainLayout } from "./layout/MainLayout";
-import { AssemblyParser } from "./core/parser";
+import { AssemblyParser } from "./core/Parser";
 import { analyze } from "./core/analyser";
 import { FileManager } from "./core/FileManager";
-import type { AssemblyResult } from "./core/types";
+import type { AssemblyResult } from "./core/Types";
 import "./App.css";
 import "./styles/layout.css";
 import "./styles/highlight.css";
@@ -1073,7 +1073,7 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>z/OS アセンブラ解析支援UI</h1>
+        <h1>z/OS アセンブラ解析支援ツール</h1>
         <div className="app-info">
           {isParsing && <span style={{ color: "#ffa500" }}>解析中...</span>}
           {!isParsing && (
