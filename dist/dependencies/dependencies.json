@@ -1,0 +1,13 @@
+{
+    "files": [
+        "REGS.INC",
+        "CONSTANTS.INC",
+        "TESTCONST.INC",
+        "MAINPROG.ASM",
+        "LARGETEST.ASM",
+        "MACROS.MAC",
+        "TESTMACROS.MAC",
+        "SAVEMAC.MAC"
+    ],
+    "description": "依存関係にあるファイルのリスト。このディレクトリにファイルを配置すると、アプリ起動時に自動的に読み込まれます。"
+}
