@@ -1,0 +1,197 @@
+*=====================================================================*
+*        TEST MACRO DEFINITIONS                                       *
+*        テスト用マクロ定義集                                         *
+*=====================================================================*
+*        Macro: INITREG                                               *
+*        用途: レジスタを初期値で初期化する                          *
+*        パラメータ: &REG (レジスタ), &VAL (初期値)                  *
+*---------------------------------------------------------------------*
+INITREG   MACRO &REG,&VAL
+          LA    &REG,&VAL                 INITIALIZE REGISTER
+          ENDM
+
+*---------------------------------------------------------------------*
+*        Macro: CLEARREG                                              *
+*        用途: レジスタをゼロクリアする                              *
+*        パラメータ: &REG (レジスタ)                                  *
+*---------------------------------------------------------------------*
+CLEARREG  MACRO &REG
+          XR    &REG,&REG                 CLEAR REGISTER (ZERO)
+          ENDM
+
+*---------------------------------------------------------------------*
+*        Macro: INCR                                                  *
+*        用途: レジスタの値を1増やす                                 *
+*        パラメータ: &REG (レジスタ)                                  *
+*---------------------------------------------------------------------*
+INCR      MACRO &REG
+          LA    &REG,1(&REG)              INCREMENT REGISTER
+          ENDM
+
+*---------------------------------------------------------------------*
+*        Macro: DECR                                                  *
+*        用途: レジスタの値を1減らす                                 *
+*        パラメータ: &REG (レジスタ)                                  *
+*---------------------------------------------------------------------*
+DECR      MACRO &REG
+          LA    &REG,-1(&REG)             DECREMENT REGISTER
+          ENDM
+
+*---------------------------------------------------------------------*
+*        Macro: SWAP                                                  *
+*        用途: 2つのレジスタの値を交換する                           *
+*        パラメータ: &REG1 (レジスタ1), &REG2 (レジスタ2)            *
+*---------------------------------------------------------------------*
+SWAP      MACRO &REG1,&REG2
+          LR    R0,&REG1                  TEMPORARY STORAGE
+          LR    &REG1,&REG2               COPY REG2 TO REG1
+          LR    &REG2,R0                  RESTORE REG1 TO REG2
+          ENDM
+
+*---------------------------------------------------------------------*
+*        Macro: PUSH                                                  *
+*        用途: レジスタをスタックにプッシュする                      *
+*        パラメータ: &REG (レジスタ), &STK (スタックポインタ)        *
+*---------------------------------------------------------------------*
+PUSH      MACRO &REG,&STK
+          ST    &REG,0(&STK)              PUSH REGISTER TO STACK
+          LA    &STK,4(&STK)              INCREMENT STACK POINTER
+          ENDM
+
+*---------------------------------------------------------------------*
+*        Macro: POP                                                   *
+*        用途: スタックからレジスタにポップする                      *
+*        パラメータ: &REG (レジスタ), &STK (スタックポインタ)        *
+*---------------------------------------------------------------------*
+POP       MACRO &REG,&STK
+          LA    &STK,-4(&STK)             DECREMENT STACK POINTER
+          L     &REG,0(&STK)              POP REGISTER FROM STACK
+          ENDM
+
+*---------------------------------------------------------------------*
+*        Macro: MOVE                                                  *
+*        用途: メモリからメモリへデータを移動する                    *
+*        パラメータ: &SRC (ソース), &DST (デスティネーション), &LEN (長さ) *
+*---------------------------------------------------------------------*
+MOVE      MACRO &SRC,&DST,&LEN
+          LA    R1,&SRC                   LOAD SOURCE ADDRESS
+          LA    R2,&DST                   LOAD DESTINATION ADDRESS
+          LA    R3,&LEN                   LOAD LENGTH
+          LR    R4,R3                     COPY LENGTH FOR LOOP
+LOOP&SYSDATE LOOP MOVE OPERATION
+          MVC   0(1,R2),0(R1)             MOVE ONE BYTE
+          LA    R1,1(R1)                  INCREMENT SOURCE
+          LA    R2,1(R2)                  INCREMENT DESTINATION
+          BCT   R4,LOOP&SYSDATE           DECREMENT AND BRANCH
+          ENDM
+
+*---------------------------------------------------------------------*
+*        Macro: COMPARE                                               *
+*        用途: 2つのメモリ領域を比較する                             *
+*        パラメータ: &MEM1 (メモリ1), &MEM2 (メモリ2), &LEN (長さ)   *
+*---------------------------------------------------------------------*
+COMPARE   MACRO &MEM1,&MEM2,&LEN
+          LA    R1,&MEM1                  LOAD FIRST MEMORY ADDRESS
+          LA    R2,&MEM2                  LOAD SECOND MEMORY ADDRESS
+          LA    R3,&LEN                   LOAD LENGTH
+          CLC   0(&LEN,R1),0(R2)          COMPARE MEMORY AREAS
+          ENDM
+
+*---------------------------------------------------------------------*
+*        Macro: FILL                                                  *
+*        用途: メモリ領域を指定値でフィルする                        *
+*        パラメータ: &MEM (メモリ), &VAL (値), &LEN (長さ)           *
+*---------------------------------------------------------------------*
+FILL      MACRO &MEM,&VAL,&LEN
+          LA    R1,&MEM                   LOAD MEMORY ADDRESS
+          LA    R2,&LEN                   LOAD LENGTH
+          MVI   0(R1),&VAL                FILL FIRST BYTE
+          LA    R1,1(R1)                  INCREMENT ADDRESS
+          BCT   R2,*-6                    DECREMENT AND BRANCH
+          ENDM
+
+*---------------------------------------------------------------------*
+*        Macro: CALLSUB                                               *
+*        用途: サブルーチンを呼び出す                                 *
+*        パラメータ: &SUB (サブルーチン名)                            *
+*---------------------------------------------------------------------*
+CALLSUB   MACRO &SUB
+          BAL   R14,&SUB                  BRANCH AND LINK TO SUBROUTINE
+          ENDM
+
+*---------------------------------------------------------------------*
+*        Macro: RETURN                                                *
+*        用途: サブルーチンから戻る                                   *
+*        パラメータ: なし                                              *
+*---------------------------------------------------------------------*
+RETURNSUB MACRO
+          BR    R14                       RETURN TO CALLER
+          ENDM
+
+*---------------------------------------------------------------------*
+*        Macro: CHECKZERO                                             *
+*        用途: レジスタがゼロかチェックし、ゼロなら分岐する          *
+*        パラメータ: &REG (レジスタ), &LABEL (ラベル)                *
+*---------------------------------------------------------------------*
+CHECKZERO MACRO &REG,&LABEL
+          LTR   &REG,&REG                 TEST REGISTER FOR ZERO
+          BZ    &LABEL                    BRANCH IF ZERO
+          ENDM
+
+*---------------------------------------------------------------------*
+*        Macro: CHECKNOTZERO                                          *
+*        用途: レジスタがゼロでないかチェックし、ゼロでないなら分岐する *
+*        パラメータ: &REG (レジスタ), &LABEL (ラベル)                *
+*---------------------------------------------------------------------*
+CHECKNOTZERO MACRO &REG,&LABEL
+          LTR   &REG,&REG                 TEST REGISTER FOR ZERO
+          BNZ   &LABEL                    BRANCH IF NOT ZERO
+          ENDM
+
+*---------------------------------------------------------------------*
+*        Macro: CHECKPOS                                              *
+*        用途: レジスタが正かチェックし、正なら分岐する              *
+*        パラメータ: &REG (レジスタ), &LABEL (ラベル)                *
+*---------------------------------------------------------------------*
+CHECKPOS  MACRO &REG,&LABEL
+          LTR   &REG,&REG                 TEST REGISTER FOR SIGN
+          BP    &LABEL                    BRANCH IF POSITIVE
+          ENDM
+
+*---------------------------------------------------------------------*
+*        Macro: CHECKNEG                                              *
+*        用途: レジスタが負かチェックし、負なら分岐する              *
+*        パラメータ: &REG (レジスタ), &LABEL (ラベル)                *
+*---------------------------------------------------------------------*
+CHECKNEG  MACRO &REG,&LABEL
+          LTR   &REG,&REG                 TEST REGISTER FOR SIGN
+          BM    &LABEL                    BRANCH IF NEGATIVE
+          ENDM
+
+*---------------------------------------------------------------------*
+*        Macro: SETBIT                                                *
+*        用途: レジスタの指定ビットをセットする                      *
+*        パラメータ: &REG (レジスタ), &BIT (ビット番号)              *
+*---------------------------------------------------------------------*
+SETBIT    MACRO &REG,&BIT
+          OI    FLAGS,BIT&BIT             SET SPECIFIED BIT
+          ENDM
+
+*---------------------------------------------------------------------*
+*        Macro: CLEARBIT                                              *
+*        用途: レジスタの指定ビットをクリアする                      *
+*        パラメータ: &REG (レジスタ), &BIT (ビット番号)              *
+*---------------------------------------------------------------------*
+CLEARBIT  MACRO &REG,&BIT
+          NI    FLAGS,255-BIT&BIT         CLEAR SPECIFIED BIT
+          ENDM
+
+*---------------------------------------------------------------------*
+*        Macro: TESTBIT                                               *
+*        用途: レジスタの指定ビットをテストし、セットされていれば分岐する *
+*        パラメータ: &REG (レジスタ), &BIT (ビット番号), &LABEL (ラベル) *
+*---------------------------------------------------------------------*
+TESTBIT   MACRO &REG,&BIT,&LABEL
+          TM    FLAGS,BIT&BIT             TEST SPECIFIED BIT
+          BO    &LABEL                    BRANCH IF BIT IS ON
+          ENDM

@@ -1,0 +1,11 @@
+*---------------------------------------------------------------------*
+*        SAVE MACRO - STANDARD REGISTER SAVE MACRO                   *
+*---------------------------------------------------------------------*
+SAVEMAC  MACRO &BASE,&REGS
+         SAVE  (14,12),,&BASE
+         LR    &BASE,15                 SET BASE REGISTER
+         USING *,&BASE                  DEFINE BASE
+         ST    R13,SAVEAREA+4           SAVE CALLER SAVEAREA
+         LA    R13,SAVEAREA             LOAD OUR SAVEAREA
+         ST    R13,8(R13)               SET BACK CHAIN
+         ENDM
