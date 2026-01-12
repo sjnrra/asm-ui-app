@@ -1,6 +1,6 @@
-import type { AsmStatement, AssemblyResult, Operand, ParseError, SymbolDefinition } from "./types";
-import { TokenType } from "./types";
-import { getOpcodeInfo } from "./opcode";
+import type { AsmStatement, AssemblyResult, Operand, ParseError, SymbolDefinition } from "./Types";
+import { TokenType } from "./Types";
+import { getOpcodeInfo } from "./Opcode";
 
 /**
  * アセンブリコードの意味解析を行うクラス

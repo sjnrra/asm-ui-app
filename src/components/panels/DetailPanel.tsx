@@ -1,5 +1,5 @@
 // src/components/panels/DetailPanel.tsx
-import type { AsmStatement } from "../../core/types";
+import type { AsmStatement } from "../../core/Types";
 
 interface DetailPanelProps {
   statement?: AsmStatement;

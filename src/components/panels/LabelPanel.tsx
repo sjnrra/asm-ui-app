@@ -1,5 +1,5 @@
 // src/components/panels/LabelPanel.tsx
-import type { SymbolDefinition } from "../../core/types";
+import type { SymbolDefinition } from "../../core/Types";
 
 interface LabelPanelProps {
   symbols: Map<string, SymbolDefinition>;
@@ -12,7 +12,7 @@ export const LabelPanel = ({ symbols, selectedLabel, onLabelSelect }: LabelPanel
 
   const getTypeLabel = (type: string): string => {
     const typeMap: Record<string, string> = {
-      label: "ラベル",
+      label: "LABEL",
       equ: "EQU",
       constant: "定数(DC)",
       variable: "変数(DS)",

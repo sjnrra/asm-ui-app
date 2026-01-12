@@ -7,10 +7,10 @@ import { LabelPanel } from "./components/panels/LabelPanel";
 import { OperandPanel } from "./components/panels/OperandPanel";
 import { FilesPanel } from "./components/panels/FilesPanel";
 import { MainLayout } from "./layout/MainLayout";
-import { AssemblyParser } from "./core/parser";
+import { AssemblyParser } from "./core/Parser";
 import { analyze } from "./core/analyser";
 import { FileManager } from "./core/FileManager";
-import type { AssemblyResult } from "./core/types";
+import type { AssemblyResult } from "./core/Types";
 import "./App.css";
 import "./styles/layout.css";
 import "./styles/highlight.css";
@@ -1073,7 +1073,7 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>z/OS アセンブラ解析支援UI</h1>
+        <h1>z/OS アセンブラ解析支援ツール</h1>
         <div className="app-info">
           {isParsing && <span style={{ color: "#ffa500" }}>解析中...</span>}
           {!isParsing && (
@@ -1101,7 +1101,7 @@ function App() {
             style={{
               padding: "4px 12px",
               background: "#007acc",
-              color: "white",
+              color: "#d4d4d4",
               border: "none",
               borderRadius: "3px",
               cursor: "pointer",
@@ -1146,7 +1146,7 @@ function App() {
               ) : (
                 <div className="empty-message">
                   <p>解析結果がありません。ソースコードを入力してください。</p>
-                  <p style={{ fontSize: "13px", color: "#6a737d", marginTop: "8px" }}>
+                  <p style={{ fontSize: "13px", color: "#858585", marginTop: "8px" }}>
                     デバッグ: ソース行数 = {sourceText.split("\n").length}
                   </p>
                 </div>

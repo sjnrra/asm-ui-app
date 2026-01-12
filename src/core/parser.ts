@@ -1,8 +1,8 @@
-import type { AsmStatement, AssemblyResult, ParseContext, ParseError } from "./types";
-import { parseLine } from "./lineParser";
-import { TokenType } from "./types";
-import { FileManager } from "./fileManager";
-import { OPCODE_DATABASE } from "./opcode";
+import type { AsmStatement, AssemblyResult, ParseContext, ParseError } from "./Types";
+import { parseLine } from "./LineParser";
+import { TokenType } from "./Types";
+import { FileManager } from "./FileManager";
+import { OPCODE_DATABASE } from "./Opcode";
 
 /**
  * アセンブリソース全体を解析

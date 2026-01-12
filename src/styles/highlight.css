@@ -5,9 +5,9 @@
   flex-direction: column;
   flex: 1;
   overflow: hidden;
-  background: #ffffff;
-  color: #1e1e1e;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  font-family: inherit;
   font-size: 14px;
   line-height: 1.6;
   width: 100%;
@@ -24,7 +24,7 @@
   margin: 0;
   padding: 15px;
   background: transparent;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: inherit;
   font-size: 14px;
   line-height: 1.6;
   width: 100%;
@@ -39,44 +39,42 @@
 }
 
 .asm-line:hover {
-  background-color: rgba(0, 0, 0, 0.03);
+  background-color: #2a2d2e;
 }
 
 .asm-line.selected {
-  background-color: rgba(0, 122, 204, 0.1);
+  background-color: #264f78;
   border-left: 3px solid #007acc;
 }
 
 .asm-line.external-source {
-  background-color: rgba(0, 92, 197, 0.05);
-  border-left: 2px solid #005cc5;
+  background-color: rgba(0, 92, 197, 0.15);
 }
 
 .asm-line.macro-call {
-  background-color: rgba(111, 66, 193, 0.05);
-  border-left: 2px solid #6f42c1;
+  background-color: rgba(197, 134, 192, 0.15);
 }
 
+/* 解析結果（ハイライト表示）の外部マクロ */
 .asm-line.external-source.macro-call {
-  background-color: rgba(227, 98, 9, 0.05);
-  border-left: 2px solid #e36209;
+  background-color: rgba(206, 144, 120, 0.068);
 }
 
 .asm-line:hover.external-source,
 .asm-line:hover.macro-call {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: #2a2d2e;
 }
 
 .asm-line.faded-line {
-  background-color: rgba(0, 0, 0, 0.02);
+  background-color: rgba(153, 153, 153, 0.15);
 }
 
 .asm-line.faded-line:hover {
-  background-color: rgba(0, 0, 0, 0.02);
+  background-color: #2a2d2e;
 }
 
 .asm-line.faded-line.selected {
-  background-color: rgba(0, 122, 204, 0.1);
+  background-color: #264f78;
   border-left: 3px solid #007acc;
 }
 
@@ -87,7 +85,7 @@
   width: 100px;
   min-width: 100px;
   padding-right: 10px;
-  color: #6a737d;
+  color: #858585;
   text-align: left;
   user-select: none;
   flex-shrink: 0;
@@ -130,45 +128,45 @@
   box-sizing: border-box;
 }
 
-/* トークンタイプ別のスタイル */
+/* トークンタイプ別のスタイル（VS Code Dark+風） */
 .tok-label {
-  color: #005cc5;
-  font-weight: 500;
+  color: #4ec9b0;
+  font-weight: 400;
 }
 
 .tok-opcode {
-  color: #032f62;
-  font-weight: 600;
+  color: #ffff9f;
+  font-weight: 400;
 }
 
 .tok-register {
-  color: #005cc5;
-  font-weight: 500;
+  color: #a4acf6d8;
+  font-weight: 400;
 }
 
 .tok-symbol {
-  color: #24292e;
+  color: #d6ecd0cc;
 }
 
 .tok-literal {
-  color: #e36209;
+  color: #ce9178;
 }
 
 .tok-number {
-  color: #005cc5;
+  color: #b5cea8;
 }
 
 .tok-operator {
-  color: #24292e;
-  font-weight: 500;
+  color: #d4d4d4;
+  font-weight: 400;
 }
 
 .tok-string {
-  color: #032f62;
+  color: #ce9178;
 }
 
 .tok-comment {
-  color: #6a737d;
+  color: #6a9955;
   font-style: italic;
 }
 
@@ -178,104 +176,15 @@
 }
 
 .tok-delimiter {
-  color: #24292e;
+  color: #d4d4d4;
 }
 
 .tok-addressing {
-  color: #6f42c1;
+  color: #c586c0;
 }
 
 .tok-unknown {
-  color: #d73a49;
+  color: #f48771;
 }
 
-/* ライトモード対応 */
-@media (prefers-color-scheme: light) {
-  .highlighted-view {
-    background: #ffffff;
-    color: #1e1e1e;
-    border: 1px solid #e1e4e8;
-  }
-
-  .asm-line:hover {
-    background-color: rgba(0, 0, 0, 0.03);
-  }
-
-  .asm-line.selected {
-    background-color: rgba(0, 122, 204, 0.1);
-    border-left: 3px solid #007acc;
-  }
-
-  .asm-line.external-source {
-    background-color: rgba(0, 92, 197, 0.05);
-    border-left: 2px solid #005cc5;
-  }
-
-  .asm-line.macro-expanded {
-    background-color: rgba(111, 66, 193, 0.05);
-    border-left: 2px solid #6f42c1;
-  }
-
-  .asm-line.external-source.macro-expanded {
-    background-color: rgba(227, 98, 9, 0.05);
-    border-left: 2px solid #e36209;
-  }
-
-  .asm-line:hover.external-source,
-  .asm-line:hover.macro-expanded {
-    background-color: rgba(0, 0, 0, 0.05);
-  }
-
-  .line-number {
-    color: #6a737d;
-  }
-
-  .tok-label {
-    color: #005cc5;
-  }
-
-  .tok-opcode {
-    color: #032f62;
-    font-weight: 600;
-  }
-
-  .tok-register {
-    color: #005cc5;
-  }
-
-  .tok-symbol {
-    color: #24292e;
-  }
-
-  .tok-literal {
-    color: #e36209;
-  }
-
-  .tok-number {
-    color: #005cc5;
-  }
-
-  .tok-operator {
-    color: #24292e;
-  }
-
-  .tok-string {
-    color: #032f62;
-  }
-
-  .tok-comment {
-    color: #6a737d;
-  }
-
-  .tok-delimiter {
-    color: #24292e;
-  }
-
-  .tok-addressing {
-    color: #6f42c1;
-  }
-
-  .tok-unknown {
-    color: #d73a49;
-  }
-}
+/* ダークモード（デフォルト） */
